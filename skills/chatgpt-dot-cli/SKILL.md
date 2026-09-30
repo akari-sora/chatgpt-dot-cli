@@ -36,6 +36,8 @@ uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 
 In short: CLI first. Use MCP only if it is already connected.
 
+"Your dot" is the default name: when `display_name` is empty, ChatGPT and the CLI show Your dot, and once the user renames the dot in the ChatGPT app, the CLI prints the custom name.
+
 ## 怎麼跟它溝通
 
 1. 用 CLI。依序試下面兩個，第一個能跑的就用：`chatgpt-dot-cli list`，然後 `~/.local/bin/chatgpt-dot-cli list`。`list` 大約 3 秒；使用者問狀態時才跑 `summary`。
@@ -43,6 +45,8 @@ In short: CLI first. Use MCP only if it is already connected.
 3. 只有這個 session 已經連上 `chatgpt-dot-cli` MCP 工具時，才可以改用 MCP。不要要求使用者安裝或啟用 MCP。
 
 簡單說：CLI 優先，MCP 只在已經連上時才用。
+
+「Your dot」是預設名稱：`display_name` 是空的時候，ChatGPT 和 CLI 都顯示 Your dot；使用者在 ChatGPT app 裡幫 dot 改名後，CLI 就會顯示新的名字。
 
 ## Commands
 

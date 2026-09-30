@@ -10,6 +10,8 @@
 
 這不是另一個 dot，也不是 dot 的替代品。它只是一個本機 client，用你已經登入的 ChatGPT 帳號，去看同一個 dot 的狀態、讀訊息、送文字。
 
+「Your dot」是 dot 的預設名稱。dot 還沒取名字（`display_name` 是空的）時，ChatGPT 和這個 CLI 都會顯示 Your dot。你可以在 ChatGPT app 裡幫 dot 改名，改名之後 CLI 就會顯示你取的名字。
+
 需要 Python 3.11 以上，以及 [uv](https://docs.astral.sh/uv/) 或 [pipx](https://pipx.pypa.io/)。這個 repo 是公開的，任何人都可以直接安裝。
 
 ### 安裝
@@ -126,6 +128,8 @@ python3 -m unittest discover -s tests -q
 Read and message the official ChatGPT Your dot from your own computer.
 
 This is not a second dot and not a replacement for it. It is a local client that uses the ChatGPT account you are already logged in with to check the same dot's status, read its messages, and send it text.
+
+"Your dot" is the dot's default name. When the dot has no name yet (`display_name` is empty), both ChatGPT and this CLI show Your dot. You can rename the dot in the ChatGPT app; after that, the CLI shows the name you chose.
 
 Requires Python 3.11 or newer, plus [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/). The repo is public, so anyone can install it.
 
