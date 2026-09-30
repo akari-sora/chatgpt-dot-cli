@@ -876,7 +876,10 @@ class McpTests(unittest.TestCase):
         from chatgpt_dot.mcp_server import clear_dots_cache, dot_list, dot_messages
 
         clear_dots_cache()
-        with mock.patch("chatgpt_dot.mcp_server.list_dots", side_effect=ApiError("GET /tbo failed (500)", 500)):
+        with (
+            mock.patch("chatgpt_dot.mcp_server.load_auth", return_value=("tok", "acct")),
+            mock.patch("chatgpt_dot.mcp_server.list_dots", side_effect=ApiError("GET /tbo failed (500)", 500)),
+        ):
             with self.assertRaises(ApiError):
                 dot_list()
         with mock.patch("chatgpt_dot.mcp_server.list_messages", side_effect=AssertionError("network")):
