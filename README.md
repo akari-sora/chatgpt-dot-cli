@@ -17,13 +17,13 @@
 用 uv（建議）：
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
 ```
 
 或用 pipx：
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
 ```
 
 兩種都會把 `chatgpt-dot-cli` 放到 `~/.local/bin`。確認一下：
@@ -40,6 +40,12 @@ chatgpt-dot-cli --help
 uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 ```
 
+有用 MCP 的話，更新時要保留 `[mcp]`：
+
+```bash
+uv tool install --force 'chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git'
+```
+
 ### 使用
 
 ```bash
@@ -50,6 +56,9 @@ chatgpt-dot-cli list             # 列出你的 dot 和 id
 ```
 
 有多個 dot 時，加 `--dot-id ID`，id 從 `chatgpt-dot-cli list` 拿。想要 JSON 輸出就加 `--json`。其他指令看 `chatgpt-dot-cli --help`。
+
+- `send` 的訊息會進 dot 的訊息收件匣；桌面版主畫面可能晚一點才顯示。
+- 要 dot 在你電腦上做事，ChatGPT 桌面版仍然要開著。
 
 ### 登入
 
@@ -69,7 +78,7 @@ agent 要裝的是 skill，不是 MCP。skill 在 repo 裡的 `skills/chatgpt-do
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
-if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi
+if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi &&
 for d in \
   "$HOME/.claude/skills" \
   "$HOME/.codex/skills" \
@@ -86,6 +95,7 @@ done
 - `~/.claude/skills`：Claude Code。如果 Gemini、Antigravity、Copilot、Kiro 的 skill 目錄是連到這裡的 symlink，它們也會讀到。
 - `~/.agents/skills`：Codex 和 OpenCode 也會讀這裡。
 - 已經 clone 過這個 repo 的話，把 `src` 改成你自己的 clone 路徑就好。
+- clone 或 pull 失敗時，`fi &&` 會讓後面的迴圈不執行，不會留下壞掉的 symlink。
 
 給 agent 的規則（skill 裡也有寫）：
 
@@ -95,7 +105,7 @@ done
 
 ### MCP（可選）
 
-不用 MCP 也能完整使用。只有你的工具只吃 MCP 時才需要：用 `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1"` 安裝，然後在 MCP 設定裡把 stdio 指令設成 `chatgpt-dot-cli-mcp`。
+不用 MCP 也能完整使用。只有你的工具只吃 MCP 時才需要：用 `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2"` 安裝，然後在 MCP 設定裡把 stdio 指令設成 `chatgpt-dot-cli-mcp`。
 
 ### 不會做的事
 
@@ -124,13 +134,13 @@ Requires Python 3.11 or newer, plus [uv](https://docs.astral.sh/uv/) or [pipx](h
 With uv (recommended):
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
 ```
 
 Or with pipx:
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
 ```
 
 Both put `chatgpt-dot-cli` in `~/.local/bin`. Check it:
@@ -147,6 +157,12 @@ Upgrade to the latest version:
 uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 ```
 
+If you use MCP, keep the `[mcp]` extra when upgrading:
+
+```bash
+uv tool install --force 'chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git'
+```
+
 ### Usage
 
 ```bash
@@ -157,6 +173,9 @@ chatgpt-dot-cli list             # list your dots and their ids
 ```
 
 If you have more than one dot, add `--dot-id ID` with an id from `chatgpt-dot-cli list`. Add `--json` for JSON output. See `chatgpt-dot-cli --help` for the other commands.
+
+- Messages from `send` go to the dot's messaging inbox. The desktop app's main view may show them a bit later.
+- For local computer work, the ChatGPT desktop app still needs to be open.
 
 ### Auth
 
@@ -176,7 +195,7 @@ Install the CLI first (see Install above), then paste this. It fetches the repo 
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
-if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi
+if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi &&
 for d in \
   "$HOME/.claude/skills" \
   "$HOME/.codex/skills" \
@@ -193,6 +212,7 @@ done
 - `~/.claude/skills`: Claude Code. Gemini, Antigravity, Copilot, and Kiro also see it if their skill directories are symlinks to this one.
 - `~/.agents/skills`: Codex and OpenCode read this too.
 - If you already have a clone of this repo, set `src` to your clone's path instead.
+- If the clone or pull fails, `fi &&` stops the loop, so no broken symlinks are created.
 
 Rules for agents (also in the skill):
 
@@ -202,7 +222,7 @@ Rules for agents (also in the skill):
 
 ### MCP (optional)
 
-Everything works without MCP. You only need it if your tool accepts nothing but MCP: install with `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.1"`, then set the stdio command in your MCP config to `chatgpt-dot-cli-mcp`.
+Everything works without MCP. You only need it if your tool accepts nothing but MCP: install with `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2"`, then set the stdio command in your MCP config to `chatgpt-dot-cli-mcp`.
 
 ### What it will not do
 

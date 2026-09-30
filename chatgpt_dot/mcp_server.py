@@ -20,7 +20,7 @@ from chatgpt_dot.api import (
     resolve_dot,
     send_message,
 )
-from chatgpt_dot.summaries import dot_name, dumps, message_line
+from chatgpt_dot.summaries import dot_name, dot_sender_ids, dumps, message_line
 
 mcp = FastMCP("chatgpt-dot-cli") if FastMCP is not None else None
 _READ = {
@@ -79,7 +79,7 @@ def dot_summary() -> str:
                     "paused": item.get("is_paused"),
                     "kind": item.get("aeon_kind"),
                     "id": item.get("id"),
-                    "recent": [message_line(message, 160) for message in reversed(recent)],
+                    "recent": [message_line(message, 160, dot_sender_ids(item)) for message in reversed(recent)],
                 }
             )
         plan = usage.get("plan_type") if isinstance(usage, dict) else None
@@ -229,7 +229,7 @@ def dot_messages(dot_id: str | None = None, limit: int = 20) -> str:
         return dumps(
             {
                 "name": dot_name(dot),
-                "lines": [message_line(item) for item in reversed(items)],
+                "lines": [message_line(item, dot_ids=dot_sender_ids(dot)) for item in reversed(items)],
                 "messages": items,
             }
         )

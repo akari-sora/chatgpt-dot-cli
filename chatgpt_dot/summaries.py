@@ -31,8 +31,21 @@ def field_lines(value: object, prefix: str = "", depth: int = 0) -> list[str]:
     return lines
 
 
-def message_line(item: dict, limit: int = 240) -> str:
-    role = item.get("role") or "?"
+def dot_sender_ids(dot: dict) -> set[str]:
+    preview = dot.get("messaging_room_preview")
+    members = preview.get("members") if isinstance(preview, dict) else None
+    return {
+        m["account_user_id"]
+        for m in members or []
+        if isinstance(m, dict) and m.get("aeon_id") and isinstance(m.get("account_user_id"), str)
+    }
+
+
+def message_line(item: dict, limit: int = 240, dot_ids: set[str] | None = None) -> str:
+    if dot_ids:
+        role = "dot" if item.get("account_user_id") in dot_ids else "you"
+    else:
+        role = item.get("role") or "?"
     content = item.get("content") if isinstance(item.get("content"), dict) else {}
     text = content.get("text") if isinstance(content, dict) else ""
     if not isinstance(text, str):

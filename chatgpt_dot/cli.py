@@ -17,7 +17,7 @@ from chatgpt_dot.api import (
     resolve_dot,
     send_message,
 )
-from chatgpt_dot.summaries import dot_name, dumps, field_lines, message_line
+from chatgpt_dot.summaries import dot_name, dot_sender_ids, dumps, field_lines, message_line
 
 # Re-export the suffix tuple the probe prints. Defined here to avoid a cycle.
 READS_PER_DOT = (
@@ -118,8 +118,9 @@ def cmd_messages(access: str, account: str, dot_id: str | None, limit: int, as_j
         print(dumps(items))
         return 0
     print(f"{dot_name(dot)} messages={len(items)}")
+    dot_ids = dot_sender_ids(dot)
     for item in reversed(items):
-        print(message_line(item))
+        print(message_line(item, dot_ids=dot_ids))
     return 0
 
 
@@ -182,7 +183,7 @@ def cmd_summary(access: str, account: str, as_json: bool) -> int:
                 "environment": environment.get("status") if isinstance(environment, dict) else None,
                 "environment_http": env_status,
                 "email": _detail_code(email) or email_status,
-                "recent": [message_line(message, 120) for message in reversed(recent)],
+                "recent": [message_line(message, 120, dot_sender_ids(item)) for message in reversed(recent)],
             }
         )
     if as_json:

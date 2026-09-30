@@ -6,6 +6,7 @@ from unittest import mock
 
 from chatgpt_dot.api import ApiError, assert_allowed, redact, request_json, resolve_dot, send_message
 from chatgpt_dot.cli import main
+from chatgpt_dot.summaries import dot_sender_ids, message_line
 
 
 class AllowlistTests(unittest.TestCase):
@@ -135,6 +136,25 @@ class ResolveTests(unittest.TestCase):
         self.assertEqual(seen["body"]["content"]["text"], "hello")
         self.assertEqual(seen["body"]["request_id"], seen["body"]["idempotency_token"])
         self.assertNotIn("secret-token", json.dumps(payload))
+
+
+class SpeakerTests(unittest.TestCase):
+    def test_aeon_member_is_dot(self):
+        dot = {
+            "messaging_room_preview": {
+                "members": [
+                    {"account_user_id": "calpi-abc", "aeon_id": "aeon-1"},
+                    {"account_user_id": "user-xyz", "aeon_id": None},
+                ]
+            }
+        }
+        ids = dot_sender_ids(dot)
+        self.assertEqual(ids, {"calpi-abc"})
+        said = {"role": "user", "account_user_id": "calpi-abc", "content": {"text": "hi"}}
+        asked = {"role": "user", "account_user_id": "user-xyz", "content": {"text": "yo"}}
+        self.assertEqual(message_line(said, dot_ids=ids), "dot: hi")
+        self.assertEqual(message_line(asked, dot_ids=ids), "you: yo")
+        self.assertEqual(message_line(said), "user: hi")
 
 
 class ToolSurfaceTests(unittest.TestCase):
