@@ -10,7 +10,7 @@
 
 這不是另一個 dot，也不是 dot 的替代品。它只是一個本機 client，用你已經登入的 ChatGPT 帳號，去看同一個 dot 的狀態、讀訊息、送文字。
 
-需要 Python 3.11 以上，以及 [uv](https://docs.astral.sh/uv/) 或 [pipx](https://pipx.pypa.io/)。這個 repo 是私有的，安裝前要能用 git 讀取它。
+需要 Python 3.11 以上，以及 [uv](https://docs.astral.sh/uv/) 或 [pipx](https://pipx.pypa.io/)。這個 repo 是公開的，任何人都可以直接安裝。
 
 ### 安裝
 
@@ -127,7 +127,7 @@ Read and message the official ChatGPT Your dot from your own computer.
 
 This is not a second dot and not a replacement for it. It is a local client that uses the ChatGPT account you are already logged in with to check the same dot's status, read its messages, and send it text.
 
-Requires Python 3.11 or newer, plus [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/). The repo is private, so you need git read access before installing.
+Requires Python 3.11 or newer, plus [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/). The repo is public, so anyone can install it.
 
 ### Install
 
