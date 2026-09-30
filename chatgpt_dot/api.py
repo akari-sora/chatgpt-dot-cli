@@ -10,9 +10,11 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 
 BASE = "https://chatgpt.com/backend-api"
 AUTH_PATH = os.path.expanduser("~/.codex/auth.json")
+MESSAGE_LIMIT_MAX = 32
 _ID = r"[A-Za-z0-9][A-Za-z0-9._~-]{0,199}"
 _DOT_SUFFIXES = (
     "threads",
@@ -40,6 +42,18 @@ POST_PATTERNS = (
 SECRET_KEY = re.compile(
     r"token|secret|key|cookie|authorization|password|session",
     re.IGNORECASE,
+)
+# Exact names. account_user_id stays visible; it is not account_id or user_id.
+EXACT_SECRET_KEYS = frozenset(
+    {
+        "email",
+        "account_id",
+        "user_id",
+        "signaling_url",
+        "magic_link_url",
+        "magic_link_share_text",
+        "inspector_url",
+    }
 )
 
 
@@ -88,7 +102,8 @@ def redact(value: object) -> object:
     if isinstance(value, dict):
         cleaned = {}
         for key, item in value.items():
-            if SECRET_KEY.search(str(key)):
+            name = str(key)
+            if name in EXACT_SECRET_KEYS or SECRET_KEY.search(name):
                 cleaned[key] = "***"
             else:
                 cleaned[key] = redact(item)
@@ -96,6 +111,38 @@ def redact(value: object) -> object:
     if isinstance(value, list):
         return [redact(item) for item in value]
     return value
+
+
+def detail_summary(payload: object) -> str:
+    """Short API detail. Dict contributes `code`; a list contributes `loc` and `msg` only."""
+    if not isinstance(payload, dict):
+        return ""
+    detail = payload.get("detail")
+    if isinstance(detail, dict):
+        code = detail.get("code")
+        return code if isinstance(code, str) else ""
+    if isinstance(detail, list):
+        parts: list[str] = []
+        for item in detail:
+            if not isinstance(item, dict):
+                continue
+            loc = item.get("loc")
+            msg = item.get("msg")
+            loc_text = ".".join(str(part) for part in loc) if isinstance(loc, list) else ""
+            msg_text = msg if isinstance(msg, str) else ""
+            text = " ".join(piece for piece in (loc_text, msg_text) if piece)
+            if text:
+                parts.append(text)
+        return "; ".join(parts)
+    return ""
+
+
+def _error(prefix: str, status: int, payload: object) -> ApiError:
+    extra = detail_summary(payload)
+    message = f"{prefix} ({status})"
+    if extra:
+        message = f"{message}: {extra}"
+    return ApiError(message, status)
 
 
 def request_json(
@@ -141,7 +188,7 @@ def request_json(
         else:
             try:
                 last = (status, json.loads(raw.decode("utf-8")))
-            except json.JSONDecodeError:
+            except (UnicodeDecodeError, json.JSONDecodeError):
                 last = (status, None)
         if status == 401:
             raise ApiError(
@@ -159,6 +206,33 @@ def get_json(access: str, account: str, path: str, query: dict | None = None) ->
     return request_json(access, account, path, "GET", query=query)
 
 
+def get_many(
+    access: str,
+    account: str,
+    calls: list[tuple[str, dict | None]],
+    *,
+    max_workers: int = 3,
+) -> list[tuple[int, object | None]]:
+    """Run GETs concurrently. Results stay in call order. At most 3 workers.
+
+    Each call still retries at most once inside request_json. Callers that want
+    a slow read to start first should put that call first; this function does
+    not reorder.
+    """
+    if not calls:
+        return []
+    if isinstance(max_workers, bool) or not isinstance(max_workers, int) or max_workers < 1:
+        raise ApiError("max_workers must be a positive integer")
+    workers = min(3, max_workers, len(calls))
+
+    def one(call: tuple[str, dict | None]) -> tuple[int, object | None]:
+        path, query = call
+        return get_json(access, account, path, query)
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(one, calls))
+
+
 def post_json(access: str, account: str, path: str, body: dict) -> tuple[int, object | None]:
     return request_json(access, account, path, "POST", body=body)
 
@@ -166,7 +240,7 @@ def post_json(access: str, account: str, path: str, body: dict) -> tuple[int, ob
 def list_dots(access: str, account: str) -> list[dict]:
     status, payload = get_json(access, account, "/tbo")
     if status != 200 or not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
-        raise ApiError(f"GET /tbo failed ({status})", status)
+        raise _error("GET /tbo failed", status, payload)
     return [item for item in payload["items"] if isinstance(item, dict) and item.get("id")]
 
 
@@ -184,6 +258,18 @@ def resolve_dot(access: str, account: str, dot_id: str | None) -> dict:
     raise ApiError("more than one dot; run `chatgpt-dot-cli list` and pass --dot-id <id>")
 
 
+def require_dot_id(access: str, account: str, dot_id: str | None) -> dict:
+    """Resolve a dot. A given id is fetched directly and does not call list_dots."""
+    if not dot_id:
+        return resolve_dot(access, account, None)
+    status, payload = get_json(access, account, f"/tbo/{dot_id}")
+    if status == 404:
+        raise ApiError("dot id was not found; run `chatgpt-dot-cli list` and pass --dot-id")
+    if status != 200 or not isinstance(payload, dict) or not payload.get("id"):
+        raise _error("GET /tbo/{id} failed", status, payload)
+    return payload
+
+
 def ensure_room(access: str, account: str, dot: dict) -> str:
     room = dot.get("messaging_room_id")
     if isinstance(room, str) and room:
@@ -197,15 +283,29 @@ def ensure_room(access: str, account: str, dot: dict) -> str:
     return room
 
 
-def list_messages(access: str, account: str, room_id: str, limit: int = 20) -> list[dict]:
+def list_messages(
+    access: str,
+    account: str,
+    room_id: str,
+    limit: int = 20,
+    before: str | None = None,
+    after: str | None = None,
+) -> list[dict]:
+    if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MESSAGE_LIMIT_MAX:
+        raise ApiError(f"limit must be from 1 to {MESSAGE_LIMIT_MAX}")
+    query: dict[str, str] = {"limit": str(limit)}
+    if before is not None:
+        query["before"] = before
+    if after is not None:
+        query["after"] = after
     status, payload = get_json(
         access,
         account,
         f"/messaging/rooms/{room_id}/messages",
-        query={"limit": str(max(1, min(limit, 50)))},
+        query=query,
     )
     if status != 200 or not isinstance(payload, dict) or not isinstance(payload.get("items"), list):
-        raise ApiError(f"GET messages failed ({status})", status)
+        raise _error("GET messages failed", status, payload)
     return [item for item in payload["items"] if isinstance(item, dict)]
 
 
@@ -224,11 +324,5 @@ def send_message(access: str, account: str, room_id: str, text: str) -> dict:
         },
     )
     if status not in (200, 201) or not isinstance(payload, dict):
-        code = None
-        if isinstance(payload, dict):
-            detail = payload.get("detail")
-            if isinstance(detail, dict):
-                code = detail.get("code")
-        extra = f" {code}" if code else ""
-        raise ApiError(f"send failed ({status}){extra}", status)
+        raise _error("send failed", status, payload)
     return payload

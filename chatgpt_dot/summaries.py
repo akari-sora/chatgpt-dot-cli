@@ -41,11 +41,28 @@ def dot_sender_ids(dot: dict) -> set[str]:
     }
 
 
+def oldest_first(items: list[dict]) -> list[dict]:
+    """Raw message objects, oldest to newest. Items without a timestamp stay in API order."""
+
+    def sort_key(pair: tuple[int, dict]) -> tuple:
+        index, item = pair
+        stamp = item.get("created_at")
+        if isinstance(stamp, (int, float)) and not isinstance(stamp, bool):
+            return (0, float(stamp), index)
+        if isinstance(stamp, str):
+            return (0, stamp, index)
+        return (1, index, index)
+
+    return [item for _, item in sorted(enumerate(items), key=sort_key)]
+
+
 def message_line(item: dict, limit: int = 240, dot_ids: set[str] | None = None) -> str:
-    if dot_ids:
-        role = "dot" if item.get("account_user_id") in dot_ids else "you"
-    else:
+    if dot_ids is None:
         role = item.get("role") or "?"
+    elif len(dot_ids) == 0:
+        role = "unknown"
+    else:
+        role = "dot" if item.get("account_user_id") in dot_ids else "you"
     content = item.get("content") if isinstance(item.get("content"), dict) else {}
     text = content.get("text") if isinstance(content, dict) else ""
     if not isinstance(text, str):
@@ -54,6 +71,12 @@ def message_line(item: dict, limit: int = 240, dot_ids: set[str] | None = None) 
     if len(text) > limit:
         text = text[: limit - 1] + "…"
     return f"{role}: {text}"
+
+
+def aeon_member_note(dot_ids: set[str] | None, count: int) -> str | None:
+    if count and dot_ids is not None and len(dot_ids) == 0:
+        return "messaging_room_preview has no aeon member"
+    return None
 
 
 def dumps(value: object) -> str:
