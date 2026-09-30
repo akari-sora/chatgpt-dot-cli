@@ -4,3 +4,6 @@ responses/
 *.response.json
 __pycache__/
 *.pyc
+.venv/
+.omc/
+*.egg-info/

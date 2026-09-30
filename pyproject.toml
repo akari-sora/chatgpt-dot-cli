@@ -1,0 +1,20 @@
+[project]
+name = "chatgpt-dot"
+version = "0.1.0"
+description = "Read and message a ChatGPT Your dot with the local ChatGPT login."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.2,<2"]
+
+[project.scripts]
+chatgpt-dot = "chatgpt_dot.cli:main"
+chatgpt-dot-mcp = "chatgpt_dot.mcp_server:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["chatgpt_dot*"]
