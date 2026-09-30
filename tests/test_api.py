@@ -106,6 +106,12 @@ class RequestTests(unittest.TestCase):
 
 
 class ResolveTests(unittest.TestCase):
+    def test_multi_dot_points_at_list(self):
+        with mock.patch("chatgpt_dot.api.list_dots", return_value=[{"id": "a"}, {"id": "b"}]):
+            with self.assertRaises(ApiError) as ctx:
+                resolve_dot("t", "acct", None)
+        self.assertIn("chatgpt-dot list", str(ctx.exception))
+
     def test_single_dot(self):
         with mock.patch(
             "chatgpt_dot.api.list_dots",
@@ -176,6 +182,7 @@ class CliOutputTests(unittest.TestCase):
         text = buf.getvalue() + err.getvalue()
         self.assertEqual(code, 0)
         self.assertIn("Your dot", text)
+        self.assertIn("id=dot-1", text)
         self.assertNotIn("secret-token-value", text)
 
     def test_json_redacts(self):
