@@ -2,248 +2,164 @@
 
 [中文](#中文) · [English](#english)
 
----
-
 ## 中文
 
-在自己電腦上讀取和傳訊息給 ChatGPT 官方的 Your dot。
+`chatgpt-dot-cli` 是 ChatGPT 官方 Your dot 的本機 client，不是第二個 dot。它用你自己的 ChatGPT 登入，在終端機裡查看同一個 dot、讀訊息、傳文字。
 
-這不是另一個 dot，也不是 dot 的替代品。它只是一個本機 client，用你已經登入的 ChatGPT 帳號，去看同一個 dot 的狀態、讀訊息、送文字。
-
-「Your dot」是 dot 的預設名稱。dot 還沒取名字（`display_name` 是空的）時，ChatGPT 和這個 CLI 都會顯示 Your dot。你可以在 ChatGPT app 裡幫 dot 改名，改名之後 CLI 就會顯示你取的名字。
-
-需要 Python 3.11 以上，以及 [uv](https://docs.astral.sh/uv/) 或 [pipx](https://pipx.pypa.io/)。這個 repo 是公開的，任何人都可以直接安裝。
+「Your dot」是預設名稱：dot 的 `display_name` 是空的時候就顯示 Your dot。你在 ChatGPT app 裡幫 dot 改名後，CLI 會印出新的名字。
 
 ### 安裝
 
-用 uv（建議）：
+需要 Python 3.11 以上。用 uv：
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3
 ```
 
 或用 pipx：
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3
 ```
 
-兩種都會把 `chatgpt-dot-cli` 放到 `~/.local/bin`。確認一下：
-
-```bash
-chatgpt-dot-cli --help
-```
-
-找不到指令的話，把 `~/.local/bin` 加進 PATH（`uv tool update-shell` 或 `pipx ensurepath`），再開一個新的終端機。
-
-更新到最新版：
-
-```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
-```
-
-有用 MCP 的話，更新時要保留 `[mcp]`：
-
-```bash
-uv tool install --force 'chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git'
-```
-
-### 使用
-
-```bash
-chatgpt-dot-cli summary          # 方案、dot 狀態、最近訊息
-chatgpt-dot-cli messages         # 最近訊息，只讀
-chatgpt-dot-cli send "你好"      # 傳一則文字給 dot
-chatgpt-dot-cli list             # 列出你的 dot 和 id
-```
-
-有多個 dot 時，加 `--dot-id ID`，id 從 `chatgpt-dot-cli list` 拿。想要 JSON 輸出就加 `--json`。其他指令看 `chatgpt-dot-cli --help`。
-
-- `send` 的訊息會進 dot 的訊息收件匣；桌面版主畫面可能晚一點才顯示。
-- 要 dot 在你電腦上做事，ChatGPT 桌面版仍然要開著。
+執行 `chatgpt-dot-cli --help` 確認裝好了。找不到指令的話，把 `~/.local/bin` 加進 PATH。
 
 ### 登入
 
-這個工具不自己登入，它讀 `~/.codex/auth.json`，也就是 Codex CLI 用 ChatGPT 帳號登入後產生的檔案。
+CLI 讀 `~/.codex/auth.json`，這是 Codex CLI 用 ChatGPT 帳號登入後產生的檔案。沒有這個檔案，或出現 401，就執行 `codex login`。檔案放在別處的話用 `--auth 路徑`。Token 不會被印出來。
 
-- 還沒有這個檔案：先安裝 Codex CLI，執行 `codex login`，選 ChatGPT 帳號登入。
-- 出現 401：登入過期了，再跑一次 `codex login`。
-- 檔案放在別的地方：用 `--auth 路徑` 指定。
+### 指令
 
-Token 不會被印出來，也不會寫進這個 repo 或任何設定檔。
+```bash
+chatgpt-dot-cli summary        # 方案、dot 狀態、最近訊息
+chatgpt-dot-cli messages       # 最近訊息
+chatgpt-dot-cli send "你好"    # 傳文字給 dot
+chatgpt-dot-cli list           # 列出你的 dot 和 id
+```
 
-### 給 agent 裝
+- `messages` 每行開頭是 `dot:`（dot 說的）或 `you:`（你說的）。
+- 加 `--json` 會輸出 JSON。JSON 裡的 `role` 永遠是 `user`，不代表是誰說的。
+- 有多個 dot 時加 `--dot-id ID`，id 從 `list` 拿。
+- 用 CLI 傳的訊息會進 dot 的訊息收件匣；桌面版主畫面可能晚一點才顯示。
+- 要 dot 在你的電腦上做事，ChatGPT 桌面版仍然要開著。
 
-agent 要裝的是 skill，不是 MCP。skill 在 repo 裡的 `skills/chatgpt-dot-cli/SKILL.md`，它會教 agent 去呼叫 `chatgpt-dot-cli` 指令。
+### 給 agent 用
 
-先照上面「安裝」裝好 CLI，再貼這段。它會把 repo 抓到 `~/.local/share/chatgpt-dot-cli`，然後把 skill 連到各個 coding agent 會讀的目錄：
+先照上面裝好 CLI，再執行下面這段。它把 repo clone 到 `~/.local/share/chatgpt-dot-cli`，再把 skill 連進各個 agent 的 skill 目錄。clone 失敗的話不會建立任何連結。
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
-if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi &&
-for d in \
-  "$HOME/.claude/skills" \
-  "$HOME/.codex/skills" \
-  "$HOME/.agents/skills" \
-  "$HOME/.config/opencode/skills" \
-  "$HOME/.config/opencode/skill" \
-  "$HOME/.cursor/skills" \
-  "$HOME/.grok/skills"
-do
+if [ -d "$src/.git" ]; then
+  git -C "$src" pull --ff-only
+else
+  git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
+for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
+         "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
+         "$HOME/.cursor/skills" "$HOME/.grok/skills"; do
   mkdir -p "$d" && ln -sfn "$src/skills/chatgpt-dot-cli" "$d/chatgpt-dot-cli"
 done
 ```
 
-- `~/.claude/skills`：Claude Code。如果 Gemini、Antigravity、Copilot、Kiro 的 skill 目錄是連到這裡的 symlink，它們也會讀到。
-- `~/.agents/skills`：Codex 和 OpenCode 也會讀這裡。
-- 已經 clone 過這個 repo 的話，把 `src` 改成你自己的 clone 路徑就好。
-- clone 或 pull 失敗時，`fi &&` 會讓後面的迴圈不執行，不會留下壞掉的 symlink。
+給 agent 的規則：
 
-給 agent 的規則（skill 裡也有寫）：
+- 用 `chatgpt-dot-cli` 指令。只有這個 session 已經連上 MCP 時才用 MCP。
+- 不要自己讀 `~/.codex/auth.json`，也不要自己呼叫 `chatgpt.com`。
 
-- skill 連好之後，一律用 `chatgpt-dot-cli` 指令。
-- 如果 PATH 上找不到 `chatgpt-dot-cli`，先用上面的 `uv tool install` 指令安裝。
-- 不要自己讀 `~/.codex/auth.json`，也不要自己對 `chatgpt.com` 發 HTTP 請求。
-
-### MCP（可選）
-
-不用 MCP 也能完整使用。只有你的工具只吃 MCP 時才需要：用 `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2"` 安裝，然後在 MCP 設定裡把 stdio 指令設成 `chatgpt-dot-cli-mcp`。
+MCP 是可選的。需要的話用 `uv tool install "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3"` 安裝，stdio 指令設成 `chatgpt-dot-cli-mcp`。
 
 ### 不會做的事
 
-不暫停、不恢復、不刪除 dot，不連接或中斷電腦，不申請 email 頻道。只做讀取和傳文字訊息。
+不暫停、不刪除 dot，不連接或中斷電腦，不申請 email。
 
-### 開發
+### 授權與 CI
+
+MIT 授權，見 [LICENSE](LICENSE)。這個 repo 是公開的。
+
+GitLab 有 runner 分鐘數時，CI 會跑測試；push tag 時設定成會建立 release。本機跑測試：
 
 ```bash
-git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git
-cd chatgpt-dot-cli
 python3 -m unittest discover -s tests -q
 ```
-
-### 授權與發佈
-
-本專案以 MIT 授權釋出，見 `LICENSE`。每次 push 都會跑 GitLab CI 測試；push 一個 git tag（例如 `v0.1.3`）時，CI 會自動建立對應的 GitLab release。
 
 ---
 
 ## English
 
-Read and message the official ChatGPT Your dot from your own computer.
+`chatgpt-dot-cli` is a local client for the official ChatGPT Your dot, not a second dot. It uses your own ChatGPT login to check the same dot, read its messages, and send it text from a terminal.
 
-This is not a second dot and not a replacement for it. It is a local client that uses the ChatGPT account you are already logged in with to check the same dot's status, read its messages, and send it text.
-
-"Your dot" is the dot's default name. When the dot has no name yet (`display_name` is empty), both ChatGPT and this CLI show Your dot. You can rename the dot in the ChatGPT app; after that, the CLI shows the name you chose.
-
-Requires Python 3.11 or newer, plus [uv](https://docs.astral.sh/uv/) or [pipx](https://pipx.pypa.io/). The repo is public, so anyone can install it.
+"Your dot" is the default name: it is shown when the dot's `display_name` is empty. After you rename the dot in the ChatGPT app, the CLI prints the new name.
 
 ### Install
 
-With uv (recommended):
+Requires Python 3.11 or newer. With uv:
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3
 ```
 
 Or with pipx:
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3
 ```
 
-Both put `chatgpt-dot-cli` in `~/.local/bin`. Check it:
+Run `chatgpt-dot-cli --help` to check the install. If the command is not found, add `~/.local/bin` to your PATH.
+
+### Login
+
+The CLI reads `~/.codex/auth.json`, the file the Codex CLI writes after you log in with a ChatGPT account. If the file is missing, or you get a 401, run `codex login`. If the file lives elsewhere, pass `--auth PATH`. Tokens are never printed.
+
+### Commands
 
 ```bash
-chatgpt-dot-cli --help
+chatgpt-dot-cli summary        # plan, dot status, recent messages
+chatgpt-dot-cli messages       # recent messages
+chatgpt-dot-cli send "hello"   # send text to the dot
+chatgpt-dot-cli list           # list your dots and their ids
 ```
 
-If the command is not found, add `~/.local/bin` to your PATH (`uv tool update-shell` or `pipx ensurepath`) and open a new terminal.
+- Each `messages` line starts with `dot:` (the dot spoke) or `you:` (you spoke).
+- Add `--json` for JSON output. The JSON `role` is always `user` and does not tell you who spoke.
+- With more than one dot, add `--dot-id ID` using an id from `list`.
+- Messages sent from the CLI go to the dot's messaging inbox; the desktop app's main view can show them a little later.
+- For the dot to do work on your computer, the ChatGPT desktop app still needs to be open.
 
-Upgrade to the latest version:
+### For agents
 
-```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
-```
-
-If you use MCP, keep the `[mcp]` extra when upgrading:
-
-```bash
-uv tool install --force 'chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git'
-```
-
-### Usage
-
-```bash
-chatgpt-dot-cli summary          # plan, dot status, recent messages
-chatgpt-dot-cli messages         # recent messages, read-only
-chatgpt-dot-cli send "hello"     # send a text message to the dot
-chatgpt-dot-cli list             # list your dots and their ids
-```
-
-If you have more than one dot, add `--dot-id ID` with an id from `chatgpt-dot-cli list`. Add `--json` for JSON output. See `chatgpt-dot-cli --help` for the other commands.
-
-- Messages from `send` go to the dot's messaging inbox. The desktop app's main view may show them a bit later.
-- For local computer work, the ChatGPT desktop app still needs to be open.
-
-### Auth
-
-The tool does not log in by itself. It reads `~/.codex/auth.json`, the file the Codex CLI writes after you log in with a ChatGPT account.
-
-- No such file yet: install the Codex CLI, run `codex login`, and choose your ChatGPT account.
-- Getting 401: the login expired. Run `codex login` again.
-- The file lives somewhere else: pass `--auth PATH`.
-
-Tokens are never printed and never written to this repo or any config file.
-
-### Install for agents
-
-Agents install the skill, not MCP. The skill is `skills/chatgpt-dot-cli/SKILL.md` in this repo, and it teaches the agent to call the `chatgpt-dot-cli` command.
-
-Install the CLI first (see Install above), then paste this. It fetches the repo to `~/.local/share/chatgpt-dot-cli` and links the skill into the directories each coding agent reads:
+Install the CLI as above, then run this. It clones the repo to `~/.local/share/chatgpt-dot-cli` and links the skill into each agent's skill directory. If the clone fails, no links are created.
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
-if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi &&
-for d in \
-  "$HOME/.claude/skills" \
-  "$HOME/.codex/skills" \
-  "$HOME/.agents/skills" \
-  "$HOME/.config/opencode/skills" \
-  "$HOME/.config/opencode/skill" \
-  "$HOME/.cursor/skills" \
-  "$HOME/.grok/skills"
-do
+if [ -d "$src/.git" ]; then
+  git -C "$src" pull --ff-only
+else
+  git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
+for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
+         "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
+         "$HOME/.cursor/skills" "$HOME/.grok/skills"; do
   mkdir -p "$d" && ln -sfn "$src/skills/chatgpt-dot-cli" "$d/chatgpt-dot-cli"
 done
 ```
 
-- `~/.claude/skills`: Claude Code. Gemini, Antigravity, Copilot, and Kiro also see it if their skill directories are symlinks to this one.
-- `~/.agents/skills`: Codex and OpenCode read this too.
-- If you already have a clone of this repo, set `src` to your clone's path instead.
-- If the clone or pull fails, `fi &&` stops the loop, so no broken symlinks are created.
+Rules for agents:
 
-Rules for agents (also in the skill):
+- Use the `chatgpt-dot-cli` command. Use MCP only if it is already connected in the session.
+- Do not read `~/.codex/auth.json` or call `chatgpt.com` yourself.
 
-- Once the skill is linked, always use the `chatgpt-dot-cli` command.
-- If `chatgpt-dot-cli` is not on PATH, install it with the `uv tool install` command above first.
-- Do not read `~/.codex/auth.json` yourself, and do not send your own HTTP requests to `chatgpt.com`.
-
-### MCP (optional)
-
-Everything works without MCP. You only need it if your tool accepts nothing but MCP: install with `uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.2"`, then set the stdio command in your MCP config to `chatgpt-dot-cli-mcp`.
+MCP is optional. If you need it, install with `uv tool install "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.3"` and set the stdio command to `chatgpt-dot-cli-mcp`.
 
 ### What it will not do
 
-It does not pause, resume, or delete a dot, does not connect or disconnect computers, and does not claim an email channel. It only reads and sends text messages.
+It will not pause or delete a dot, connect or disconnect a computer, or claim email.
 
-### Development
+### License and CI
+
+MIT, see [LICENSE](LICENSE). This repo is public.
+
+CI runs the tests when GitLab runner minutes are available, and a pushed tag is set up to create a release. To run the tests locally:
 
 ```bash
-git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git
-cd chatgpt-dot-cli
 python3 -m unittest discover -s tests -q
 ```
-
-### License and releases
-
-This project is released under the MIT License; see `LICENSE`. GitLab CI runs the tests on every push, and pushing a git tag (for example `v0.1.3`) makes CI create a GitLab release for it automatically.
