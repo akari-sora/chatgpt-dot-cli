@@ -1,0 +1,6 @@
+auth.json
+.env
+responses/
+*.response.json
+__pycache__/
+*.pyc
