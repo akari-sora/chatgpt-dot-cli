@@ -22,7 +22,7 @@ from chatgpt_dot.api import (
 )
 from chatgpt_dot.summaries import dot_name, dumps, message_line
 
-mcp = FastMCP("chatgpt-dot") if FastMCP is not None else None
+mcp = FastMCP("chatgpt-dot-cli") if FastMCP is not None else None
 _READ = {
     "readOnlyHint": True,
     "destructiveHint": False,
@@ -254,7 +254,7 @@ def main() -> None:
     if mcp is None:
         sys.exit(
             "MCP is optional. Run: uv run --project "
-            "/Users/iml1s/Documents/mine/chatgpt-dot --extra mcp chatgpt-dot-mcp"
+            "/Users/iml1s/Documents/mine/chatgpt-dot-cli --extra mcp chatgpt-dot-cli-mcp"
         )
     mcp.run(transport="stdio")
 

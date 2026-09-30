@@ -1,4 +1,4 @@
-# chatgpt-dot
+# chatgpt-dot-cli
 
 跟 ChatGPT 的 Your dot 讀狀態、看訊息、送文字。App 裡的內部名稱是 orbit，HTTP 資源叫 tbo。
 
@@ -9,14 +9,14 @@
 CLI 和 skill 是必要的。MCP 是可選的。
 
 ```bash
-uv tool install --editable /Users/iml1s/Documents/mine/chatgpt-dot
-chatgpt-dot --help
+uv tool install --editable /Users/iml1s/Documents/mine/chatgpt-dot-cli
+chatgpt-dot-cli --help
 ```
 
 Skill 指到這個 repo，不要複製：
 
 ```bash
-repo=/Users/iml1s/Documents/mine/chatgpt-dot/skills/chatgpt-dot
+repo=/Users/iml1s/Documents/mine/chatgpt-dot-cli/skills/chatgpt-dot-cli
 for d in \
   ~/.claude/skills \
   ~/.codex/skills \
@@ -27,7 +27,7 @@ for d in \
   ~/.grok/skills
 do
   mkdir -p "$d"
-  ln -sfn "$repo" "$d/chatgpt-dot"
+  ln -sfn "$repo" "$d/chatgpt-dot-cli"
 done
 ```
 
@@ -36,16 +36,16 @@ done
 可選 MCP，已經用這條命令登記過的話不用再裝：
 
 ```bash
-/Users/iml1s/.local/bin/uv run --project /Users/iml1s/Documents/mine/chatgpt-dot --extra mcp chatgpt-dot-mcp
+/Users/iml1s/.local/bin/uv run --project /Users/iml1s/Documents/mine/chatgpt-dot-cli --extra mcp chatgpt-dot-cli-mcp
 ```
 
 ## 使用
 
 ```bash
-chatgpt-dot summary
-chatgpt-dot messages
-chatgpt-dot send "你好"
-chatgpt-dot list
+chatgpt-dot-cli summary
+chatgpt-dot-cli messages
+chatgpt-dot-cli send "你好"
+chatgpt-dot-cli list
 ```
 
 `summary` 是預設。`messages` 只讀，不會順便建立房間。`send` 才會在沒有房間時建立。`display_name` 是空字串時顯示 Your dot。email 頻道回 `ineligible` 代表這個帳號不能用 email。
@@ -53,7 +53,7 @@ chatgpt-dot list
 在 repo 裡跑測試：
 
 ```bash
-cd /Users/iml1s/Documents/mine/chatgpt-dot
+cd /Users/iml1s/Documents/mine/chatgpt-dot-cli
 python3 -m unittest discover -s tests -v
 ```
 

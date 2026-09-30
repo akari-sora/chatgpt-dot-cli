@@ -244,7 +244,7 @@ def cmd_probe(access: str, account: str) -> int:
 
 
 def _add_dot_id(parser: argparse.ArgumentParser, positional: bool = True) -> None:
-    parser.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot list`")
+    parser.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot-cli list`")
     if positional:
         parser.add_argument("dot_id", nargs="?", help="dot id; omit when there is only one")
 
@@ -254,10 +254,10 @@ def build_parser() -> argparse.ArgumentParser:
         description="Read and message your ChatGPT dot. MCP is optional; this CLI is enough.",
         epilog=(
             "examples:\n"
-            "  chatgpt-dot summary\n"
-            "  chatgpt-dot messages --limit 10\n"
-            "  chatgpt-dot send -- \"-text starting with a dash\"\n"
-            "  chatgpt-dot threads --dot-id ID\n"
+            "  chatgpt-dot-cli summary\n"
+            "  chatgpt-dot-cli messages --limit 10\n"
+            "  chatgpt-dot-cli send -- \"-text starting with a dash\"\n"
+            "  chatgpt-dot-cli threads --dot-id ID\n"
             "--json may appear before or after the command. --limit is capped at 50."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -298,7 +298,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     send = sub.add_parser("send", help="send a text message to the dot")
     send.add_argument("text", help="message text")
-    send.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot list`")
+    send.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot-cli list`")
     return parser
 
 

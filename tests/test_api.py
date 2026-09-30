@@ -110,7 +110,7 @@ class ResolveTests(unittest.TestCase):
         with mock.patch("chatgpt_dot.api.list_dots", return_value=[{"id": "a"}, {"id": "b"}]):
             with self.assertRaises(ApiError) as ctx:
                 resolve_dot("t", "acct", None)
-        self.assertIn("chatgpt-dot list", str(ctx.exception))
+        self.assertIn("chatgpt-dot-cli list", str(ctx.exception))
 
     def test_single_dot(self):
         with mock.patch(

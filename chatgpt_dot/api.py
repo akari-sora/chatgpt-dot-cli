@@ -176,12 +176,12 @@ def resolve_dot(access: str, account: str, dot_id: str | None) -> dict:
         for item in dots:
             if item.get("id") == dot_id:
                 return item
-        raise ApiError("dot id was not found; run `chatgpt-dot list` and pass --dot-id")
+        raise ApiError("dot id was not found; run `chatgpt-dot-cli list` and pass --dot-id")
     if len(dots) == 1:
         return dots[0]
     if not dots:
         raise ApiError("no dot on this account")
-    raise ApiError("more than one dot; run `chatgpt-dot list` and pass --dot-id <id>")
+    raise ApiError("more than one dot; run `chatgpt-dot-cli list` and pass --dot-id <id>")
 
 
 def ensure_room(access: str, account: str, dot: dict) -> str:
