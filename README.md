@@ -121,6 +121,10 @@ cd chatgpt-dot-cli
 python3 -m unittest discover -s tests -q
 ```
 
+### 授權與發佈
+
+本專案以 MIT 授權釋出，見 `LICENSE`。每次 push 都會跑 GitLab CI 測試；push 一個 git tag（例如 `v0.1.3`）時，CI 會自動建立對應的 GitLab release。
+
 ---
 
 ## English
@@ -239,3 +243,7 @@ git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 cd chatgpt-dot-cli
 python3 -m unittest discover -s tests -q
 ```
+
+### License and releases
+
+This project is released under the MIT License; see `LICENSE`. GitLab CI runs the tests on every push, and pushing a git tag (for example `v0.1.3`) makes CI create a GitLab release for it automatically.
