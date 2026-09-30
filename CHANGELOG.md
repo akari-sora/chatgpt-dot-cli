@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1
+
+The v0.2.0 tag stays where it is. Its release job failed because `apt-get update` received HTTP 500 from the Debian mirror, so that tag has no GitLab Release.
+
+- The tag release job downloads release-cli v0.24.0 with Python, using `dpkg --print-architecture`, and no longer uses apt.
+- Package version is 0.2.1. Behavior matches v0.2.0.
+
 ## v0.2.0
 
 ### Breaking

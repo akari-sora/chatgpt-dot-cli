@@ -22,7 +22,7 @@ Reply in the user's language.
 2. If neither exists, install it, then run `chatgpt-dot-cli list` again:
 
    ```bash
-   uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+   uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
    ```
 
 3. Run `summary` only when the user asks for status. A bare `chatgpt-dot-cli` is not a summary: with no subcommand it prints help and exits 2, and it does not call the API.

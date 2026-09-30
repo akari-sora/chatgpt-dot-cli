@@ -17,13 +17,13 @@
 需要 Python 3.11 以上。用 uv，版本釘在 tag：
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 或用 pipx：
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 執行 `chatgpt-dot-cli --help` 確認裝好了。找不到指令的話，把 `~/.local/bin` 加進 PATH。
@@ -31,7 +31,7 @@ pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
 升級時要重新指定 tag。`uv tool upgrade` 不會把已經釘在某個 tag 的安裝移到下一個 tag：
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 移除：
@@ -82,15 +82,15 @@ chatgpt-dot-cli send "你好"
 
 ### 給 agent 用
 
-先照上面裝好 CLI，再執行下面這段。它把 repo 以 tag `v0.2.0` clone 到 `~/.local/share/chatgpt-dot-cli`；目錄已經存在時改為 `fetch --tags` 再 `checkout --detach`。然後把 skill 連進各個 agent 的 skill 目錄。clone 失敗的話不會建立任何連結。目標路徑已存在而且不是 symlink 時，會在 stderr 印出跳過訊息，不覆蓋。
+先照上面裝好 CLI，再執行下面這段。它把 repo 以 tag `v0.2.1` clone 到 `~/.local/share/chatgpt-dot-cli`；目錄已經存在時改為 `fetch --tags` 再 `checkout --detach`。然後把 skill 連進各個 agent 的 skill 目錄。clone 失敗的話不會建立任何連結。目標路徑已存在而且不是 symlink 時，會在 stderr 印出跳過訊息，不覆蓋。
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.0
+  git -C "$src" checkout --detach v0.2.1
 else
-  git clone --branch v0.2.0 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.1 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
@@ -113,7 +113,7 @@ done
 MCP 是可選的。需要的話用下面這行安裝，stdio 指令設成 `chatgpt-dot-cli-mcp`：
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1"
 ```
 
 從這個 repo 的工作目錄做可編輯安裝：
@@ -151,13 +151,13 @@ This repo is public. Anyone can install it.
 Requires Python 3.11 or newer. With uv, pinned to a tag:
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 Or with pipx:
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 Run `chatgpt-dot-cli --help` to check the install. If the command is not found, add `~/.local/bin` to your PATH.
@@ -165,7 +165,7 @@ Run `chatgpt-dot-cli --help` to check the install. If the command is not found, 
 To upgrade, install that tag again. `uv tool upgrade` will not move an install that is pinned to a tag:
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1
 ```
 
 Uninstall:
@@ -216,15 +216,15 @@ chatgpt-dot-cli send "hello"
 
 ### For agents
 
-Install the CLI as above, then run this. It clones tag `v0.2.0` to `~/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. It then links the skill into each agent's skill directory. If the clone fails, no links are created. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone.
+Install the CLI as above, then run this. It clones tag `v0.2.1` to `~/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. It then links the skill into each agent's skill directory. If the clone fails, no links are created. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone.
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.0
+  git -C "$src" checkout --detach v0.2.1
 else
-  git clone --branch v0.2.0 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.1 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
@@ -247,7 +247,7 @@ Rules for agents:
 MCP is optional. If you need it, install with the line below and set the stdio command to `chatgpt-dot-cli-mcp`:
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.0"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1"
 ```
 
 From a checkout of this repo, the editable install is:
