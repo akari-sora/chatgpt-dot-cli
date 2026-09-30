@@ -1,77 +1,110 @@
 # chatgpt-dot-cli
 
-跟 ChatGPT 的 Your dot 讀狀態、看訊息、送文字。App 裡的內部名稱是 orbit，HTTP 資源叫 tbo。
+在自己電腦上讀取和傳訊息給 ChatGPT 官方的 Your dot。
 
-登入用本機 `~/.codex/auth.json`（`auth_mode: chatgpt`）。Token 不進這個 repo、不進 MCP 設定、不印出來。
+這不是另一個 dot，也不是 dot 的替代品。它只是一個本機 client，用你已經登入的 ChatGPT 帳號，去看同一個 dot 的狀態、讀訊息、送文字。
+
+需要 Python 3.11 以上，以及 [uv](https://docs.astral.sh/uv/) 或 [pipx](https://pipx.pypa.io/)。這個 repo 是私有的，安裝前要能用 git 讀取它。
 
 ## 安裝
 
-CLI 和 skill 是必要的。MCP 是可選的。
+用 uv（建議）：
 
 ```bash
-uv tool install --editable /Users/iml1s/Documents/mine/chatgpt-dot-cli
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.0
+```
+
+或用 pipx：
+
+```bash
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.0
+```
+
+兩種都會把 `chatgpt-dot-cli` 放到 `~/.local/bin`。確認一下：
+
+```bash
 chatgpt-dot-cli --help
 ```
 
-Skill 指到這個 repo，不要複製：
+找不到指令的話，把 `~/.local/bin` 加進 PATH（`uv tool update-shell` 或 `pipx ensurepath`），再開一個新的終端機。
+
+更新到最新版：
 
 ```bash
-repo=/Users/iml1s/Documents/mine/chatgpt-dot-cli/skills/chatgpt-dot-cli
-for d in \
-  ~/.claude/skills \
-  ~/.codex/skills \
-  ~/.agents/skills \
-  ~/.config/opencode/skills \
-  ~/.config/opencode/skill \
-  ~/.cursor/skills \
-  ~/.grok/skills
-do
-  mkdir -p "$d"
-  ln -sfn "$repo" "$d/chatgpt-dot-cli"
-done
-```
-
-`~/.claude/skills` 會連到 Gemini、Antigravity、Copilot、Kiro。Codex 和 OpenCode 也會讀 `~/.agents/skills`。
-
-可選 MCP，已經用這條命令登記過的話不用再裝：
-
-```bash
-/Users/iml1s/.local/bin/uv run --project /Users/iml1s/Documents/mine/chatgpt-dot-cli --extra mcp chatgpt-dot-cli-mcp
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 ```
 
 ## 使用
 
 ```bash
-chatgpt-dot-cli summary
-chatgpt-dot-cli messages
-chatgpt-dot-cli send "你好"
-chatgpt-dot-cli list
+chatgpt-dot-cli summary          # 方案、dot 狀態、最近訊息
+chatgpt-dot-cli messages         # 最近訊息，只讀
+chatgpt-dot-cli send "你好"      # 傳一則文字給 dot
+chatgpt-dot-cli list             # 列出你的 dot 和 id
 ```
 
-`summary` 是預設。`messages` 只讀，不會順便建立房間。`send` 才會在沒有房間時建立。`display_name` 是空字串時顯示 Your dot。email 頻道回 `ineligible` 代表這個帳號不能用 email。
+有多個 dot 時，加 `--dot-id ID`，id 從 `chatgpt-dot-cli list` 拿。想要 JSON 輸出就加 `--json`。其他指令看 `chatgpt-dot-cli --help`。
 
-在 repo 裡跑測試：
+## 登入
+
+這個工具不自己登入，它讀 `~/.codex/auth.json`，也就是 Codex CLI 用 ChatGPT 帳號登入後產生的檔案。
+
+- 還沒有這個檔案：先安裝 Codex CLI，執行 `codex login`，選 ChatGPT 帳號登入。
+- 出現 401：登入過期了，再跑一次 `codex login`。
+- 檔案放在別的地方：用 `--auth 路徑` 指定。
+
+Token 不會被印出來，也不會寫進這個 repo 或任何設定檔。
+
+## 給 agent 裝
+
+agent 要裝的是 skill，不是 MCP。skill 在 repo 裡的 `skills/chatgpt-dot-cli/SKILL.md`，它會教 agent 去呼叫 `chatgpt-dot-cli` 指令。
+
+先照上面「安裝」裝好 CLI，再貼這段。它會把 repo 抓到 `~/.local/share/chatgpt-dot-cli`，然後把 skill 連到各個 coding agent 會讀的目錄：
 
 ```bash
-cd /Users/iml1s/Documents/mine/chatgpt-dot-cli
-python3 -m unittest discover -s tests -v
+src="$HOME/.local/share/chatgpt-dot-cli"
+if [ -d "$src/.git" ]; then git -C "$src" pull --ff-only; else git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"; fi
+for d in \
+  "$HOME/.claude/skills" \
+  "$HOME/.codex/skills" \
+  "$HOME/.agents/skills" \
+  "$HOME/.config/opencode/skills" \
+  "$HOME/.config/opencode/skill" \
+  "$HOME/.cursor/skills" \
+  "$HOME/.grok/skills"
+do
+  mkdir -p "$d" && ln -sfn "$src/skills/chatgpt-dot-cli" "$d/chatgpt-dot-cli"
+done
 ```
 
-## 已實測的讀取
+- `~/.claude/skills`：Claude Code。如果 Gemini、Antigravity、Copilot、Kiro 的 skill 目錄是連到這裡的 symlink，它們也會讀到。
+- `~/.agents/skills`：Codex 和 OpenCode 也會讀這裡。
+- 已經 clone 過這個 repo 的話，把 `src` 改成你的路徑就好，例如 `src=/Users/iml1s/Documents/mine/chatgpt-dot-cli`。
 
-基準是 `https://chatgpt.com/backend-api`，2026-10-01，ChatGPT App 26.715。
+給 agent 的規則（skill 裡也有寫）：
 
-- `GET /wham/usage` 200
-- `GET /tbo/primary` 200，`selection` 是目前選取，不是 dot 物件
-- `GET /tbo` 200，dot id 在 `items[].id`，`aeon_kind` 是 `orbit`
-- `GET /tbo/{id}`、`/threads`、`/activity`、`/root-thread`、`/computers`、`/environment/status`、`/automations` 200
-- `GET /tbo/by-thread/{thread_id}` 200，thread id 用 `active_root_thread_id`
-- `GET /messaging/rooms/{room_id}/messages` 200
-- `POST /messaging/rooms/{room_id}/messages` 已實機送出成功
-- `GET /tbo/{id}/channels/email` 403，`detail.code` 是 `ineligible`
+- skill 連好之後，一律用 `chatgpt-dot-cli` 指令。
+- 如果 PATH 上找不到 `chatgpt-dot-cli`，先用上面的 `uv tool install` 指令安裝。
+- 不要自己讀 `~/.codex/auth.json`，也不要自己對 `chatgpt.com` 發 HTTP 請求。
 
-把 `aeon_id` 當成 `/tbo/{id}` 會 404。登入過期時回 401，先跑 `codex login`。
+## MCP（可選）
 
-## 沒有做的事
+不用 MCP 也能完整使用。只有你的工具只吃 MCP 時才需要：
 
-不暫停、不刪除、不連接電腦、不領 email、不打語音、不打 `/ps/orbit`。
+```bash
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.1.0"
+```
+
+然後在 MCP 設定裡把 stdio 指令設成 `chatgpt-dot-cli-mcp`。
+
+## 不會做的事
+
+不暫停、不恢復、不刪除 dot，不連接或中斷電腦，不申請 email 頻道。只做讀取和傳文字訊息。
+
+## 開發
+
+```bash
+git clone https://gitlab.com/aa22396584/chatgpt-dot-cli.git
+cd chatgpt-dot-cli
+python3 -m unittest discover -s tests -q
+```

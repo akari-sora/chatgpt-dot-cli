@@ -20,7 +20,12 @@ Your dot is the always-on ChatGPT agent. The desktop app calls it orbit. The HTT
 ```bash
 chatgpt-dot-cli summary
 ~/.local/bin/chatgpt-dot-cli summary
-~/.local/bin/uv run --project /Users/iml1s/Documents/mine/chatgpt-dot-cli chatgpt-dot-cli summary
+```
+
+If neither exists, install it, then run `chatgpt-dot-cli summary` again:
+
+```bash
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 ```
 
 2. If `chatgpt-dot-cli` MCP tools are already connected in this session, you may use them instead. Do not ask the user to install or enable MCP.

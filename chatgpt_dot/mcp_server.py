@@ -253,8 +253,8 @@ def dot_send(text: str, dot_id: str | None = None) -> str:
 def main() -> None:
     if mcp is None:
         sys.exit(
-            "MCP is optional. Run: uv run --project "
-            "/Users/iml1s/Documents/mine/chatgpt-dot-cli --extra mcp chatgpt-dot-cli-mcp"
+            "MCP is optional. Install it with: uv tool install --with mcp "
+            "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git"
         )
     mcp.run(transport="stdio")
 
