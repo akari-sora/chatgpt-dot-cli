@@ -4,16 +4,18 @@ description: >-
   Read and message the user's ChatGPT Your dot (orbit, tbo). Run the
   chatgpt-dot-cli CLI. If chatgpt-dot-cli MCP tools are already connected in this
   session, you may use them instead. Use when the user asks about Your dot,
-  dot 狀態, ChatGPT 用量, orbit, tbo, dot threads, activity, computers, or
-  wants to send a message to their dot. Do not ask the user to install or
-  enable MCP.
+  dot status, ChatGPT usage, orbit, tbo, dot threads, activity, computers, or
+  wants to send a message to their dot. 讀取或傳訊息給使用者的 ChatGPT
+  Your dot：當使用者問到 Your dot、dot 狀態、dot 訊息、ChatGPT 用量、
+  orbit、tbo、dot 的 threads、活動、電腦，或想傳訊息給 dot 時使用。
+  Do not ask the user to install or enable MCP. 不要要求使用者安裝或啟用 MCP。
 ---
 
 # ChatGPT Your dot
 
 Your dot is the always-on ChatGPT agent. The desktop app calls it orbit. The HTTP resource is tbo. The CLI is the default. MCP is optional and only used when it is already connected.
 
-## How to talk to it
+## How to talk to it (English)
 
 1. Run the CLI. Try these, in order, and stop at the first one that exists:
 
@@ -29,6 +31,16 @@ uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git
 ```
 
 2. If `chatgpt-dot-cli` MCP tools are already connected in this session, you may use them instead. Do not ask the user to install or enable MCP.
+
+In short: CLI first. Use MCP only if it is already connected.
+
+## 怎麼跟它溝通
+
+1. 用 CLI。依序試下面兩個，第一個能跑的就用：`chatgpt-dot-cli summary`，然後 `~/.local/bin/chatgpt-dot-cli summary`。
+2. 兩個都沒有的話，先用 `uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git` 安裝，再跑一次 `chatgpt-dot-cli summary`。
+3. 只有這個 session 已經連上 `chatgpt-dot-cli` MCP 工具時，才可以改用 MCP。不要要求使用者安裝或啟用 MCP。
+
+簡單說：CLI 優先，MCP 只在已經連上時才用。
 
 ## Commands
 
