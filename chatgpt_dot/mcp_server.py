@@ -1,8 +1,13 @@
-"""Local stdio MCP server. Read tools plus send, nothing else."""
+"""Local stdio MCP server. Optional. Read tools plus send, nothing else."""
 
 from __future__ import annotations
 
-from mcp.server.fastmcp import FastMCP
+import sys
+
+try:
+    from mcp.server.fastmcp import FastMCP
+except ImportError:
+    FastMCP = None  # type: ignore[misc, assignment]
 
 from chatgpt_dot.api import (
     ApiError,
@@ -17,7 +22,7 @@ from chatgpt_dot.api import (
 )
 from chatgpt_dot.summaries import dot_name, dumps, message_line
 
-mcp = FastMCP("chatgpt-dot")
+mcp = FastMCP("chatgpt-dot") if FastMCP is not None else None
 _READ = {
     "readOnlyHint": True,
     "destructiveHint": False,
@@ -43,7 +48,16 @@ def _fail(exc: Exception) -> str:
     return str(exc)
 
 
-@mcp.tool(annotations=_READ)
+def _tool(annotations: dict):
+    def wrap(fn):
+        if mcp is None:
+            return fn
+        return mcp.tool(annotations=annotations)(fn)
+
+    return wrap
+
+
+@_tool(_READ)
 def dot_summary() -> str:
     """Plan type, each dot's status, and the latest messages."""
     try:
@@ -74,7 +88,7 @@ def dot_summary() -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_usage() -> str:
     """ChatGPT plan usage from GET /wham/usage."""
     try:
@@ -85,7 +99,7 @@ def dot_usage() -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_primary() -> str:
     """Current dot selection from GET /tbo/primary."""
     try:
@@ -96,7 +110,7 @@ def dot_primary() -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_list() -> str:
     """List dots. The id field is the dot id; aeon_id is not."""
     try:
@@ -114,7 +128,7 @@ def _one(path_suffix: str, dot_id: str | None) -> str:
     return dumps({"status": status, "name": dot_name(dot), "body": payload})
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_get(dot_id: str | None = None) -> str:
     """Fetch one dot. Omit dot_id when the account has a single dot."""
     try:
@@ -123,7 +137,7 @@ def dot_get(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_threads(dot_id: str | None = None) -> str:
     """List the dot's threads."""
     try:
@@ -132,7 +146,7 @@ def dot_threads(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_activity(dot_id: str | None = None) -> str:
     """Recent activity for the dot."""
     try:
@@ -141,7 +155,7 @@ def dot_activity(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_root_thread(dot_id: str | None = None) -> str:
     """The dot's root thread id."""
     try:
@@ -150,7 +164,7 @@ def dot_root_thread(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_computers(dot_id: str | None = None) -> str:
     """Computers attached to the dot."""
     try:
@@ -159,7 +173,7 @@ def dot_computers(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_environment_status(dot_id: str | None = None) -> str:
     """Cloud environment status for the dot."""
     try:
@@ -168,7 +182,7 @@ def dot_environment_status(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_automations(dot_id: str | None = None) -> str:
     """Automations on the dot."""
     try:
@@ -177,7 +191,7 @@ def dot_automations(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_email_channel_status(dot_id: str | None = None) -> str:
     """Email channel status. 403 ineligible means the account cannot use email."""
     try:
@@ -186,7 +200,7 @@ def dot_email_channel_status(dot_id: str | None = None) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_by_thread(thread_id: str | None = None, dot_id: str | None = None) -> str:
     """Resolve a dot from a thread id. Defaults to the dot's active root thread."""
     try:
@@ -202,13 +216,15 @@ def dot_by_thread(thread_id: str | None = None, dot_id: str | None = None) -> st
         return _fail(exc)
 
 
-@mcp.tool(annotations=_READ)
+@_tool(_READ)
 def dot_messages(dot_id: str | None = None, limit: int = 20) -> str:
     """Recent messages with the dot, oldest last in the text list."""
     try:
         access, account = _session()
         dot = resolve_dot(access, account, dot_id or None)
-        room = ensure_room(access, account, dot)
+        room = dot.get("messaging_room_id")
+        if not isinstance(room, str) or not room:
+            return "no messages yet (send creates the room)"
         items = list_messages(access, account, room, limit)
         return dumps(
             {
@@ -221,7 +237,7 @@ def dot_messages(dot_id: str | None = None, limit: int = 20) -> str:
         return _fail(exc)
 
 
-@mcp.tool(annotations=_SEND)
+@_tool(_SEND)
 def dot_send(text: str, dot_id: str | None = None) -> str:
     """Send a text message to the dot and return the created message."""
     try:
@@ -235,6 +251,11 @@ def dot_send(text: str, dot_id: str | None = None) -> str:
 
 
 def main() -> None:
+    if mcp is None:
+        sys.exit(
+            "MCP is optional. Run: uv run --project "
+            "/Users/iml1s/Documents/mine/chatgpt-dot --extra mcp chatgpt-dot-mcp"
+        )
     mcp.run(transport="stdio")
 
 

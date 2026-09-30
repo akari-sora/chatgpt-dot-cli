@@ -134,6 +134,8 @@ def request_json(
         except urllib.error.HTTPError as exc:
             status = exc.code
             raw = exc.read()
+        except (urllib.error.URLError, TimeoutError) as exc:
+            raise ApiError(f"network error: {getattr(exc, 'reason', exc)}") from exc
         if not raw:
             last = (status, None)
         else:
@@ -141,6 +143,11 @@ def request_json(
                 last = (status, json.loads(raw.decode("utf-8")))
             except json.JSONDecodeError:
                 last = (status, None)
+        if status == 401:
+            raise ApiError(
+                "ChatGPT login expired (401). Open Codex or run `codex login`, then retry.",
+                401,
+            )
         if status in (403, 429, 503) and last[1] is None and attempt == 0:
             time.sleep(1)
             continue
@@ -169,12 +176,12 @@ def resolve_dot(access: str, account: str, dot_id: str | None) -> dict:
         for item in dots:
             if item.get("id") == dot_id:
                 return item
-        raise ApiError("dot id was not in GET /tbo")
+        raise ApiError("dot id was not found; run `chatgpt-dot list` and pass --dot-id")
     if len(dots) == 1:
         return dots[0]
     if not dots:
         raise ApiError("no dot on this account")
-    raise ApiError("more than one dot; pass a dot id from GET /tbo")
+    raise ApiError("more than one dot; run `chatgpt-dot list` and pass --dot-id <id>")
 
 
 def ensure_room(access: str, account: str, dot: dict) -> str:

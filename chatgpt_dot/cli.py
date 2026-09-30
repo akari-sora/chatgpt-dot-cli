@@ -6,6 +6,7 @@ import argparse
 import sys
 
 from chatgpt_dot.api import (
+    AUTH_PATH,
     ApiError,
     AuthError,
     ensure_room,
@@ -28,14 +29,6 @@ READS_PER_DOT = (
     "/automations",
     "/channels/email",
 )
-
-
-def _auth(path: str) -> tuple[str, str]:
-    try:
-        return load_auth(path)
-    except AuthError as exc:
-        print(str(exc), file=sys.stderr)
-        raise SystemExit(2) from exc
 
 
 def _detail_code(payload: object) -> str | None:
@@ -75,7 +68,7 @@ def cmd_list(access: str, account: str, as_json: bool) -> int:
         return 0
     for item in dots:
         print(
-            f"{dot_name(item)} status={item.get('status')} "
+            f"id={item.get('id')} {dot_name(item)} status={item.get('status')} "
             f"paused={item.get('is_paused')} kind={item.get('aeon_kind')}"
         )
     print(f"{len(dots)} dot(s)")
@@ -113,7 +106,13 @@ def _suffix(access: str, account: str, dot_id: str | None, suffix: str, as_json:
 
 def cmd_messages(access: str, account: str, dot_id: str | None, limit: int, as_json: bool) -> int:
     dot = resolve_dot(access, account, dot_id)
-    room = ensure_room(access, account, dot)
+    room = dot.get("messaging_room_id")
+    if not isinstance(room, str) or not room:
+        if as_json:
+            print(dumps({"messages": [], "note": "no messages yet (send creates the room)"}))
+        else:
+            print("no messages yet (send creates the room)")
+        return 0
     items = list_messages(access, account, room, limit)
     if as_json:
         print(dumps(items))
@@ -244,45 +243,67 @@ def cmd_probe(access: str, account: str) -> int:
     return 0
 
 
+def _add_dot_id(parser: argparse.ArgumentParser, positional: bool = True) -> None:
+    parser.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot list`")
+    if positional:
+        parser.add_argument("dot_id", nargs="?", help="dot id; omit when there is only one")
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Read and message your ChatGPT dot.")
-    parser.add_argument("--auth", default=None, help="path to auth.json")
-    parser.add_argument("--json", action="store_true", help="print redacted JSON")
+    parser = argparse.ArgumentParser(
+        description="Read and message your ChatGPT dot. MCP is optional; this CLI is enough.",
+        epilog=(
+            "examples:\n"
+            "  chatgpt-dot summary\n"
+            "  chatgpt-dot messages --limit 10\n"
+            "  chatgpt-dot send -- \"-text starting with a dash\"\n"
+            "  chatgpt-dot threads --dot-id ID\n"
+            "--json may appear before or after the command. --limit is capped at 50."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("--auth", default=None, help="path to auth.json (default: ~/.codex/auth.json)")
+    parser.add_argument("--json", action="store_true", help="print redacted JSON; works before or after the command")
     sub = parser.add_subparsers(dest="command")
 
-    sub.add_parser("summary", help="plan, dot status, and recent messages")
-    sub.add_parser("usage")
-    sub.add_parser("primary")
-    sub.add_parser("list")
+    sub.add_parser("summary", help="plan type, dot status, and recent messages")
+    sub.add_parser("usage", help="ChatGPT plan usage")
+    sub.add_parser("primary", help="which dot is currently selected")
+    sub.add_parser("list", help="list dots with ids")
     sub.add_parser("probe", help="status codes and field names for every read")
 
-    show = sub.add_parser("show")
-    show.add_argument("dot_id", nargs="?")
+    show = sub.add_parser("show", help="one dot's profile")
+    _add_dot_id(show)
 
-    for name in (
-        "threads",
-        "activity",
-        "root-thread",
-        "computers",
-        "env",
-        "automations",
-        "email-status",
-    ):
-        cmd = sub.add_parser(name)
-        cmd.add_argument("dot_id", nargs="?")
+    helps = {
+        "threads": "threads on the dot",
+        "activity": "recent activity",
+        "root-thread": "root thread id",
+        "computers": "computers the dot can use",
+        "env": "cloud environment status",
+        "automations": "automations on the dot",
+        "email-status": "email channel; ineligible is normal",
+    }
+    for name, text in helps.items():
+        cmd = sub.add_parser(name, help=text)
+        _add_dot_id(cmd)
 
-    by_thread = sub.add_parser("by-thread")
-    by_thread.add_argument("thread_id", nargs="?")
-    by_thread.add_argument("--dot-id")
+    by_thread = sub.add_parser("by-thread", help="find the dot for a thread id")
+    by_thread.add_argument("thread_id", nargs="?", help="defaults to the dot's active root thread")
+    by_thread.add_argument("--dot-id", dest="dot_id_opt", help="dot id used only when thread_id is omitted")
 
-    messages = sub.add_parser("messages")
-    messages.add_argument("dot_id", nargs="?")
-    messages.add_argument("--limit", type=int, default=20)
+    messages = sub.add_parser("messages", help="recent messages; does not create a room")
+    _add_dot_id(messages)
+    messages.add_argument("--limit", type=int, default=20, help="how many messages to fetch, capped at 50")
 
     send = sub.add_parser("send", help="send a text message to the dot")
-    send.add_argument("text")
-    send.add_argument("--dot-id")
+    send.add_argument("text", help="message text")
+    send.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot list`")
     return parser
+
+
+def _picked_dot(args: argparse.Namespace) -> str | None:
+    return getattr(args, "dot_id_opt", None) or getattr(args, "dot_id", None)
 
 
 _SUFFIX = {
@@ -307,7 +328,11 @@ def _split_globals(argv: list[str]) -> tuple[list[str], str | None, bool]:
             as_json = True
             index += 1
             continue
-        if item == "--auth":
+        if item == "--auth" or item.startswith("--auth="):
+            if item.startswith("--auth="):
+                auth_path = item.split("=", 1)[1]
+                index += 1
+                continue
             if index + 1 >= len(argv):
                 raise SystemExit(2)
             auth_path = argv[index + 1]
@@ -324,7 +349,12 @@ def main(argv: list[str] | None = None) -> int:
     cleaned, auth_path, as_json = _split_globals(raw)
     args = parser.parse_args(cleaned)
     command = args.command or "summary"
-    access, account = load_auth(auth_path) if auth_path else _auth_default()
+    try:
+        access, account = load_auth(auth_path or AUTH_PATH)
+    except AuthError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
+    dot_id = _picked_dot(args)
     try:
         if command == "summary":
             return cmd_summary(access, account, as_json)
@@ -335,30 +365,19 @@ def main(argv: list[str] | None = None) -> int:
         if command == "list":
             return cmd_list(access, account, as_json)
         if command == "show":
-            return cmd_show(access, account, args.dot_id, as_json)
+            return cmd_show(access, account, dot_id, as_json)
         if command == "probe":
             return cmd_probe(access, account)
         if command == "by-thread":
-            return cmd_by_thread(access, account, args.thread_id, args.dot_id, as_json)
+            return cmd_by_thread(access, account, args.thread_id, dot_id, as_json)
         if command == "messages":
-            return cmd_messages(access, account, args.dot_id, args.limit, as_json)
+            return cmd_messages(access, account, dot_id, args.limit, as_json)
         if command == "send":
-            return cmd_send(access, account, args.dot_id, args.text, as_json)
+            return cmd_send(access, account, dot_id, args.text, as_json)
         if command in _SUFFIX:
-            return _suffix(access, account, args.dot_id, _SUFFIX[command], as_json)
-    except AuthError as exc:
-        print(str(exc), file=sys.stderr)
-        return 2
+            return _suffix(access, account, dot_id, _SUFFIX[command], as_json)
     except ApiError as exc:
         print(str(exc), file=sys.stderr)
         return 3
     parser.error(f"unknown command {command}")
     return 2
-
-
-def _auth_default() -> tuple[str, str]:
-    try:
-        return load_auth()
-    except AuthError as exc:
-        print(str(exc), file=sys.stderr)
-        raise SystemExit(2) from exc

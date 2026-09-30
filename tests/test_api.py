@@ -135,7 +135,7 @@ class ToolSurfaceTests(unittest.TestCase):
     def test_tool_names(self):
         import pathlib
 
-        text = pathlib.Path("chatgpt_dot/mcp_server.py").read_text()
+        text = (pathlib.Path(__file__).resolve().parents[1] / "chatgpt_dot" / "mcp_server.py").read_text()
         names = set(__import__("re").findall(r"^def (dot_\w+)\(", text, __import__("re").M))
         self.assertEqual(
             names,
@@ -193,6 +193,64 @@ class CliOutputTests(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertNotIn("secret-token-value", text)
         self.assertIn("***", text)
+
+    def test_bad_auth_exits_2(self):
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            code = main(["--auth", "/no/such/auth.json", "list"])
+        self.assertEqual(code, 2)
+        self.assertNotIn("Traceback", err.getvalue())
+
+    def test_auth_equals_form(self):
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            code = main(["--auth=/no/such/auth.json", "list"])
+        self.assertEqual(code, 2)
+
+    def test_network_error_exits_3(self):
+        import urllib.error
+
+        err = io.StringIO()
+        with (
+            mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
+            mock.patch(
+                "chatgpt_dot.api.urllib.request.urlopen",
+                side_effect=urllib.error.URLError("offline"),
+            ),
+            mock.patch("sys.stderr", err),
+        ):
+            code = main(["usage"])
+        self.assertEqual(code, 3)
+        self.assertIn("network error", err.getvalue())
+        self.assertNotIn("Traceback", err.getvalue())
+
+    def test_401_tells_user_to_login(self):
+        err = io.StringIO()
+
+        def urlopen(req, timeout=0):
+            raise urllib.error.HTTPError(req.full_url, 401, "no", hdrs=None, fp=io.BytesIO(b"{}"))
+
+        with (
+            mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
+            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("sys.stderr", err),
+        ):
+            code = main(["list"])
+        self.assertEqual(code, 3)
+        self.assertIn("codex login", err.getvalue())
+
+    def test_messages_does_not_create_room(self):
+        dots = [{"id": "dot-1", "display_name": "", "messaging_room_id": None}]
+        out = io.StringIO()
+        with (
+            mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
+            mock.patch("chatgpt_dot.cli.resolve_dot", return_value=dots[0]),
+            mock.patch("chatgpt_dot.cli.ensure_room", side_effect=AssertionError("posted")),
+            mock.patch("sys.stdout", out),
+        ):
+            code = main(["messages"])
+        self.assertEqual(code, 0)
+        self.assertIn("no messages yet", out.getvalue())
 
 
 if __name__ == "__main__":

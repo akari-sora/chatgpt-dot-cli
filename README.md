@@ -4,15 +4,58 @@
 
 登入用本機 `~/.codex/auth.json`（`auth_mode: chatgpt`）。Token 不進這個 repo、不進 MCP 設定、不印出來。
 
+## 安裝
+
+CLI 和 skill 是必要的。MCP 是可選的。
+
 ```bash
-uv run --project /Users/iml1s/Documents/mine/chatgpt-dot chatgpt-dot summary
-uv run --project /Users/iml1s/Documents/mine/chatgpt-dot chatgpt-dot messages
-uv run --project /Users/iml1s/Documents/mine/chatgpt-dot chatgpt-dot send "你好"
-python3 -m chatgpt_dot summary
-python3 client.py
+uv tool install --editable /Users/iml1s/Documents/mine/chatgpt-dot
+chatgpt-dot --help
 ```
 
-`summary` 是預設。`messages` 讀最近對話。`send` 把文字送到 dot 的 messaging room。`display_name` 是空字串時顯示 Your dot。email 頻道回 `ineligible` 代表這個帳號不能用 email，不是程式壞掉。
+Skill 指到這個 repo，不要複製：
+
+```bash
+repo=/Users/iml1s/Documents/mine/chatgpt-dot/skills/chatgpt-dot
+for d in \
+  ~/.claude/skills \
+  ~/.codex/skills \
+  ~/.agents/skills \
+  ~/.config/opencode/skills \
+  ~/.config/opencode/skill \
+  ~/.cursor/skills \
+  ~/.grok/skills
+do
+  mkdir -p "$d"
+  ln -sfn "$repo" "$d/chatgpt-dot"
+done
+```
+
+`~/.claude/skills` 會連到 Gemini、Antigravity、Copilot、Kiro。Codex 和 OpenCode 也會讀 `~/.agents/skills`。
+
+可選 MCP，已經用這條命令登記過的話不用再裝：
+
+```bash
+/Users/iml1s/.local/bin/uv run --project /Users/iml1s/Documents/mine/chatgpt-dot --extra mcp chatgpt-dot-mcp
+```
+
+## 使用
+
+```bash
+chatgpt-dot summary
+chatgpt-dot messages
+chatgpt-dot send "你好"
+chatgpt-dot list
+```
+
+`summary` 是預設。`messages` 只讀，不會順便建立房間。`send` 才會在沒有房間時建立。`display_name` 是空字串時顯示 Your dot。email 頻道回 `ineligible` 代表這個帳號不能用 email。
+
+在 repo 裡跑測試：
+
+```bash
+cd /Users/iml1s/Documents/mine/chatgpt-dot
+python3 -m unittest discover -s tests -v
+```
 
 ## 已實測的讀取
 
@@ -23,19 +66,12 @@ python3 client.py
 - `GET /tbo` 200，dot id 在 `items[].id`，`aeon_kind` 是 `orbit`
 - `GET /tbo/{id}`、`/threads`、`/activity`、`/root-thread`、`/computers`、`/environment/status`、`/automations` 200
 - `GET /tbo/by-thread/{thread_id}` 200，thread id 用 `active_root_thread_id`
-- `GET /messaging/rooms/{room_id}/messages` 200，`items[].role` 與 `content.text`
+- `GET /messaging/rooms/{room_id}/messages` 200
+- `POST /messaging/rooms/{room_id}/messages` 已實機送出成功
 - `GET /tbo/{id}/channels/email` 403，`detail.code` 是 `ineligible`
 
-把 `aeon_id` 當成 `/tbo/{id}` 會 404。
-
-## 送訊
-
-`POST /messaging/rooms/{room_id}/messages`，body 是 `content.text`、`request_id`、`idempotency_token`。房間 id 用 dot 的 `messaging_room_id`。沒有房間時才 `POST /tbo/{id}/messaging-room`。
+把 `aeon_id` 當成 `/tbo/{id}` 會 404。登入過期時回 401，先跑 `codex login`。
 
 ## 沒有做的事
 
 不暫停、不刪除、不連接電腦、不領 email、不打語音、不打 `/ps/orbit`。
-
-## Agent
-
-Skill 在 `skills/chatgpt-dot/SKILL.md`。MCP 指令是 `chatgpt-dot-mcp`，stdio，沒有 env。工具含讀取和 `dot_messages`、`dot_send`。
