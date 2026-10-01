@@ -370,7 +370,7 @@ Windows 沒有這組 symlink。把 `skills\chatgpt-dot-cli` 複製到該 agent �
 python3 -m unittest discover -s tests -q
 ```
 
-CI：Linux 用這個專案的 runner（tag `grok-box`、`ondemand`、`chatgpt-dot-cli`），Python 3.11、3.12、3.13。Windows 用自建的 Windows runner，在 tag、手動執行，以及 main 上改到程式、測試或打包檔時跑 Python 3.12。macOS 沒有 CI。推上 tag 會建立 GitLab Release，並附上 wheel 與 sdist。MIT 授權，見 [LICENSE](LICENSE)。
+CI：預設使用 GitLab.com 的 runner。Linux 跑 Python 3.11、3.12、3.13。Windows 在 tag、手動執行，以及 main 上改到程式、測試或打包檔時跑 Python 3.12。維護者可設定 CI/CD 變數 `LINUX_RUNNER_TAG` 與 `WINDOWS_RUNNER_TAG`，把 job 指到自己的 runner。macOS 沒有 CI。推上 tag 會建立 GitLab Release，並附上 wheel 與 sdist。MIT 授權，見 [LICENSE](LICENSE)。
 
 ### 相關專案
 
@@ -745,7 +745,7 @@ Run the tests locally:
 python3 -m unittest discover -s tests -q
 ```
 
-CI: Linux uses this project's runner (tags `grok-box`, `ondemand`, `chatgpt-dot-cli`) on Python 3.11, 3.12, and 3.13. Windows uses a self-hosted Windows runner and runs Python 3.12 on tags, manual runs, and main commits that change code, tests, or packaging. There is no macOS CI. Pushing a tag creates a GitLab Release and attaches the wheel and sdist. MIT, see [LICENSE](LICENSE).
+CI: jobs use GitLab.com runners by default. Linux runs on Python 3.11, 3.12, and 3.13. Windows runs Python 3.12 on tags, manual runs, and main commits that change code, tests, or packaging. Maintainers can point jobs at their own runners by setting the CI/CD variables `LINUX_RUNNER_TAG` and `WINDOWS_RUNNER_TAG`. There is no macOS CI. Pushing a tag creates a GitLab Release and attaches the wheel and sdist. MIT, see [LICENSE](LICENSE).
 
 ### Related projects
 
