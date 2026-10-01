@@ -6,6 +6,8 @@ workflow:
     - if: $CI_COMMIT_BRANCH
     - if: $CI_COMMIT_TAG
 
+# Linux jobs keep these tags so they stay on the project runner.
+# The Windows job overrides tags and is the only job that uses shared runners.
 default:
   tags: [grok-box, ondemand, chatgpt-dot-cli]
   interruptible: true
@@ -17,28 +19,75 @@ stages:
   - test
   - release
 
-test:
+.test_linux:
   stage: test
-  image: python:3.12-slim
+  tags: [grok-box, ondemand, chatgpt-dot-cli]
   variables:
     PIP_CACHE_DIR: $CI_PROJECT_DIR/.cache/pip
-  cache:
-    key: pip-py3.12
-    paths:
-      - .cache/pip
   script:
     - pip install -e ".[mcp]"
     - python -m unittest discover -s tests -v
 
+test:
+  extends: .test_linux
+  image: python:3.12-slim
+  cache:
+    key: pip-py3.12
+    paths:
+      - .cache/pip
+
+test:py311:
+  extends: .test_linux
+  image: python:3.11-slim
+  cache:
+    key: pip-py3.11
+    paths:
+      - .cache/pip
+
+test:py313:
+  extends: .test_linux
+  image: python:3.13-slim
+  cache:
+    key: pip-py3.13
+    paths:
+      - .cache/pip
+
+# GitLab.com hosted Windows runner. No secrets. Main and tags only.
+test:windows:
+  stage: test
+  tags: [saas-windows-medium-amd64]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_TAG
+  variables:
+    UV_CACHE_DIR: $CI_PROJECT_DIR/.cache/uv
+  cache:
+    key: uv-win-py312
+    paths:
+      - .cache/uv
+  script:
+    - |
+      $ErrorActionPreference = "Stop"
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      irm https://astral.sh/uv/install.ps1 | iex
+      $env:Path = "$env:USERPROFILE\.local\bin;" + $env:Path
+      uv python install 3.12
+      uv venv .venv --python 3.12
+      uv pip install --python .venv\Scripts\python.exe -e ".[mcp]"
+      .\.venv\Scripts\python.exe -m unittest discover -s tests -v
+
 release:
   stage: release
   image: python:3.12-slim
+  tags: [grok-box, ondemand, chatgpt-dot-cli]
   interruptible: false
   rules:
     - if: $CI_COMMIT_TAG
   script:
     - |
       set -eu
+      pip install build
+      python -m build
       arch=$(dpkg --print-architecture)
       case "$arch" in
         amd64) bin_arch=amd64 ;;
@@ -52,6 +101,7 @@ release:
           ;;
       esac
       BIN_ARCH="$bin_arch" python - <<'PY'
+      import json
       import os
       import pathlib
       import re
@@ -69,25 +119,80 @@ release:
       match = re.search(rf"(?ms)^## {re.escape(tag)}\n(.*?)(?=^## |\Z)", text)
       notes = match.group(1).strip() if match else f"Release {tag}"
       pathlib.Path("/tmp/release-notes.txt").write_text(notes + "\n", encoding="utf-8")
+
+      api = os.environ["CI_API_V4_URL"]
+      project = os.environ["CI_PROJECT_ID"]
+      token = os.environ["CI_JOB_TOKEN"]
+      links = []
+      for path in sorted(pathlib.Path("dist").iterdir()):
+          if path.suffix != ".whl" and not path.name.endswith(".tar.gz"):
+              continue
+          upload = f"{api}/projects/{project}/packages/generic/chatgpt-dot-cli/{tag}/{path.name}"
+          request = urllib.request.Request(
+              upload,
+              data=path.read_bytes(),
+              method="PUT",
+              headers={"JOB-TOKEN": token},
+          )
+          with urllib.request.urlopen(request) as response:
+              if response.status not in (200, 201):
+                  raise SystemExit(f"package upload status {response.status} for {path.name}")
+          links.append({"name": path.name, "url": upload, "link_type": "package"})
+      if len(links) != 2:
+          raise SystemExit(f"expected wheel and sdist, got {len(links)}")
+      pathlib.Path("/tmp/asset-links.txt").write_text(
+          "".join(json.dumps(item) + "\n" for item in links),
+          encoding="utf-8",
+      )
       PY
-      if release-cli create --name "$CI_COMMIT_TAG" --tag-name "$CI_COMMIT_TAG" --description "$(cat /tmp/release-notes.txt)"; then
+      links=()
+      while IFS= read -r line; do
+        links+=(--assets-link "$line")
+      done < /tmp/asset-links.txt
+      if release-cli create --name "$CI_COMMIT_TAG" --tag-name "$CI_COMMIT_TAG" --description "$(cat /tmp/release-notes.txt)" "${links[@]}"; then
         exit 0
       fi
       python - <<'PY'
+      import json
       import os
       import urllib.error
       import urllib.request
 
       tag = os.environ["CI_COMMIT_TAG"]
-      url = f"{os.environ['CI_API_V4_URL']}/projects/{os.environ['CI_PROJECT_ID']}/releases/{tag}"
-      request = urllib.request.Request(url, headers={"JOB-TOKEN": os.environ["CI_JOB_TOKEN"]})
+      api = os.environ["CI_API_V4_URL"]
+      project = os.environ["CI_PROJECT_ID"]
+      token = os.environ["CI_JOB_TOKEN"]
+      url = f"{api}/projects/{project}/releases/{tag}"
+      request = urllib.request.Request(url, headers={"JOB-TOKEN": token})
       try:
           with urllib.request.urlopen(request) as response:
               code = response.status
       except urllib.error.HTTPError as exc:
           code = exc.code
-      if code == 200:
-          raise SystemExit(0)
-      print(f"release API status {code}")
-      raise SystemExit(1)
+      if code != 200:
+          print(f"release API status {code}")
+          raise SystemExit(1)
+      for line in open("/tmp/asset-links.txt", encoding="utf-8"):
+          payload = line.strip()
+          if not payload:
+              continue
+          link = f"{api}/projects/{project}/releases/{tag}/assets/links"
+          req = urllib.request.Request(
+              link,
+              data=payload.encode("utf-8"),
+              method="POST",
+              headers={"JOB-TOKEN": token, "Content-Type": "application/json"},
+          )
+          try:
+              with urllib.request.urlopen(req) as response:
+                  if response.status not in (200, 201):
+                      raise SystemExit(f"asset link status {response.status}")
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode("utf-8", "replace")
+              if exc.code == 400 and "already" in body.lower():
+                  continue
+              print(f"asset link status {exc.code}")
+              raise SystemExit(1)
+      json.loads(open("/tmp/asset-links.txt", encoding="utf-8").readline())
+      raise SystemExit(0)
       PY

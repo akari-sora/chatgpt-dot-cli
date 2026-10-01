@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.2.2
+
+Usage docs cover every command, flag, JSON key, and failure mode in zh-TW and English. Help text states defaults and ranges. The auth path is `.codex/auth.json` in the home directory on Linux, macOS, and Windows. Windows consoles are switched to UTF-8 so zh-TW text does not crash cp950 or cp1252. Unix permission bits are not checked on Windows.
+
+Supported operating systems:
+
+- Linux: tested in CI (Python 3.11, 3.12, 3.13) on this project's runner
+- Windows: tested in CI (Python 3.12) on GitLab hosted runners
+- macOS: tested locally
+
+Install:
+
+- Linux and macOS: `uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.2`
+- Windows (PowerShell): `uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.2"`
+
+The Release attaches the platform-independent wheel and sdist.
+
+Part of trinity-cli: https://gitlab.com/aa22396584/trinity-cli
+
+Related: https://gitlab.com/aa22396584/chatgpt-dot-cli, https://gitlab.com/aa22396584/grok-bot-cli (mirror https://github.com/ImL1s/grok-bot-cli), https://gitlab.com/aa22396584/muse-web-cli.
+
 ## v0.2.1
 
 The v0.2.0 tag stays where it is. Its release job failed because `apt-get update` received HTTP 500 from the Debian mirror, so that tag has no GitLab Release.

@@ -7,7 +7,6 @@ import sys
 
 from chatgpt_dot import __version__
 from chatgpt_dot.api import (
-    AUTH_PATH,
     MESSAGE_LIMIT_MAX,
     ApiError,
     AuthError,
@@ -22,6 +21,7 @@ from chatgpt_dot.api import (
     resolve_dot,
     send_message,
 )
+from chatgpt_dot.platform import configure_stdio
 from chatgpt_dot.summaries import aeon_member_note, dot_name, dot_sender_ids, dumps, field_lines, message_line, oldest_first
 
 # Re-export the suffix tuple the probe prints. Defined here to avoid a cycle.
@@ -457,10 +457,29 @@ def cmd_probe(access: str, account: str, as_json: bool) -> int:
     return 0
 
 
+def _parser(sub: argparse._SubParsersAction, name: str, text: str, example: str) -> argparse.ArgumentParser:
+    return sub.add_parser(
+        name,
+        help=text,
+        epilog=f"example: {example}",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
+
 def _add_dot_id(parser: argparse.ArgumentParser, positional: bool = True) -> None:
-    parser.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot-cli list` (preferred)")
+    parser.add_argument(
+        "--dot-id",
+        dest="dot_id_opt",
+        default=None,
+        help="dot id from `list` (preferred). Default: the only dot on the account",
+    )
     if positional:
-        parser.add_argument("dot_id", nargs="?", help="dot id; omit when there is only one")
+        parser.add_argument(
+            "dot_id",
+            nargs="?",
+            default=None,
+            help="dot id. Default: the only dot. Prefer --dot-id",
+        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -468,13 +487,16 @@ def build_parser() -> argparse.ArgumentParser:
         description="Read and message your ChatGPT dot. MCP is optional; this CLI is enough.",
         epilog=(
             "examples:\n"
+            "  chatgpt-dot-cli --version\n"
             "  chatgpt-dot-cli list\n"
             "  chatgpt-dot-cli messages --limit 10\n"
             "  chatgpt-dot-cli messages --before MESSAGE_ID --limit 5\n"
+            "  chatgpt-dot-cli summary --no-activity\n"
             "  chatgpt-dot-cli send -- \"-text starting with a dash\"\n"
             "  chatgpt-dot-cli threads --dot-id ID\n"
             "A command is required. With no command the CLI prints this help and exits 2.\n"
             "--json may appear before or after the command, but not after a standalone --.\n"
+            "--json defaults to off. --auth defaults to .codex/auth.json in the home directory.\n"
             "--limit defaults to 20 and must be from 1 to 32.\n"
             "--before and --after each take one message id and return a single page.\n"
             "The CLI does not send cursor and does not follow further pages."
@@ -482,18 +504,30 @@ def build_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
-    parser.add_argument("--auth", default=None, help="path to auth.json (default: ~/.codex/auth.json)")
-    parser.add_argument("--json", action="store_true", help="print redacted JSON; works before or after the command")
+    parser.add_argument(
+        "--auth",
+        default=None,
+        help="path to the Codex auth file. Default: .codex/auth.json in the home directory",
+    )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="print redacted JSON (default: off). Before or after the command, not after a standalone --",
+    )
     sub = parser.add_subparsers(dest="command")
 
-    summary = sub.add_parser("summary", help="plan type, dot status, and recent messages")
-    summary.add_argument("--no-activity", action="store_true", help="do not fetch activity")
-    sub.add_parser("usage", help="ChatGPT plan usage")
-    sub.add_parser("primary", help="which dot is currently selected")
-    sub.add_parser("list", help="list dots with ids")
-    sub.add_parser("probe", help="status codes and field names for every read")
+    summary = _parser(sub, "summary", "plan type, dot status, and recent messages", "chatgpt-dot-cli summary --no-activity")
+    summary.add_argument(
+        "--no-activity",
+        action="store_true",
+        help="skip the activity read (default: activity is fetched)",
+    )
+    _parser(sub, "usage", "ChatGPT plan usage", "chatgpt-dot-cli usage")
+    _parser(sub, "primary", "which dot is currently selected", "chatgpt-dot-cli primary")
+    _parser(sub, "list", "list dots with ids", "chatgpt-dot-cli list")
+    _parser(sub, "probe", "status codes and field names for every read", "chatgpt-dot-cli probe")
 
-    show = sub.add_parser("show", help="one dot's profile")
+    show = _parser(sub, "show", "one dot's profile", "chatgpt-dot-cli show")
     _add_dot_id(show)
 
     helps = {
@@ -506,27 +540,55 @@ def build_parser() -> argparse.ArgumentParser:
         "email-status": "email channel; ineligible is normal",
     }
     for name, text in helps.items():
-        cmd = sub.add_parser(name, help=text)
+        cmd = _parser(sub, name, text, f"chatgpt-dot-cli {name}")
         _add_dot_id(cmd)
 
-    by_thread = sub.add_parser("by-thread", help="find the dot for a thread id")
-    by_thread.add_argument("thread_id", nargs="?", help="defaults to the dot's active root thread")
-    by_thread.add_argument("--dot-id", dest="dot_id_opt", help="dot id used only when thread_id is omitted")
+    by_thread = _parser(sub, "by-thread", "find the dot for a thread id", "chatgpt-dot-cli by-thread")
+    by_thread.add_argument(
+        "thread_id",
+        nargs="?",
+        default=None,
+        help="thread id. Default: the dot's active root thread",
+    )
+    by_thread.add_argument(
+        "--dot-id",
+        dest="dot_id_opt",
+        default=None,
+        help="dot id, used only when the thread id is omitted. Default: the only dot",
+    )
 
-    messages = sub.add_parser("messages", help="recent messages; does not create a room")
-    messages.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot-cli list` (preferred)")
+    messages = _parser(sub, "messages", "recent messages; does not create a room", "chatgpt-dot-cli messages --limit 10")
+    messages.add_argument(
+        "--dot-id",
+        dest="dot_id_opt",
+        default=None,
+        help="dot id from `list` (preferred). Default: the only dot on the account",
+    )
     messages.add_argument(
         "--limit",
         type=_limit_arg,
         default=20,
-        help=f"how many messages to fetch (default 20, range 1..{MESSAGE_LIMIT_MAX})",
+        help=f"how many messages to fetch (default: 20, range 1..{MESSAGE_LIMIT_MAX})",
     )
-    messages.add_argument("--before", help="message id; return the single older page")
-    messages.add_argument("--after", help="message id; return the single newer page")
+    messages.add_argument(
+        "--before",
+        default=None,
+        help="one message id; return that older page and stop (default: none)",
+    )
+    messages.add_argument(
+        "--after",
+        default=None,
+        help="one message id; return that newer page and stop (default: none)",
+    )
 
-    send = sub.add_parser("send", help="send a text message to the dot")
-    send.add_argument("text", help="message text")
-    send.add_argument("--dot-id", dest="dot_id_opt", help="dot id from `chatgpt-dot-cli list`")
+    send = _parser(sub, "send", "send a text message to the dot", 'chatgpt-dot-cli send -- "hello"')
+    send.add_argument("text", help="message text. Put -- before text that starts with a dash")
+    send.add_argument(
+        "--dot-id",
+        dest="dot_id_opt",
+        default=None,
+        help="dot id from `list`. Default: the only dot on the account",
+    )
     return parser
 
 
@@ -576,6 +638,7 @@ def _split_globals(argv: list[str]) -> tuple[list[str], str | None, bool]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio()
     parser = build_parser()
     raw = list(sys.argv[1:] if argv is None else argv)
     cleaned, auth_path, as_json = _split_globals(raw)
@@ -584,7 +647,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 2
     try:
-        access, account = load_auth(auth_path or AUTH_PATH)
+        access, account = load_auth(auth_path)
     except AuthError as exc:
         print(str(exc), file=sys.stderr)
         return 2

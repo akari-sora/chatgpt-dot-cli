@@ -1,7 +1,10 @@
+import argparse
 import io
 import json
+import re
 import unittest
 import urllib.error
+from pathlib import Path
 from unittest import mock
 
 from chatgpt_dot import __version__
@@ -824,7 +827,7 @@ class SendAndArgsTests(unittest.TestCase):
                 main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(__version__, out.getvalue())
-        self.assertIn("0.2.1", out.getvalue())
+        self.assertIn("0.2.2", out.getvalue())
 
     def test_unicode_body_exits_3(self):
         def urlopen(req, timeout=0):
@@ -892,9 +895,9 @@ class McpTests(unittest.TestCase):
 
         text = (pathlib.Path(__file__).resolve().parents[1] / "chatgpt_dot" / "mcp_server.py").read_text()
         self.assertIn("[mcp]", text)
-        self.assertIn("@v0.2.1", text)
+        self.assertIn("@v0.2.2", text)
         self.assertIn(
-            'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.1"',
+            'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.2"',
             text,
         )
         self.assertIn('uv pip install -e ".[mcp]"', text)
@@ -955,6 +958,46 @@ class McpTests(unittest.TestCase):
         self.assertIn("note", messages)
         self.assertEqual(thread["note"], "dot has no active root thread")
         clear_dots_cache()
+
+
+class DocsDriftTests(unittest.TestCase):
+    def test_every_subcommand_is_documented(self):
+        from chatgpt_dot.cli import build_parser
+
+        root = Path(__file__).resolve().parents[1]
+        readme = (root / "README.md").read_text(encoding="utf-8")
+        skill = (root / "skills" / "chatgpt-dot-cli" / "SKILL.md").read_text(encoding="utf-8")
+        parser = build_parser()
+        names = []
+        for action in parser._actions:
+            if not isinstance(action, argparse._SubParsersAction):
+                continue
+            for choice in action._choices_actions:
+                self.assertTrue(choice.help and str(choice.help).strip(), choice.dest)
+                names.append(choice.dest)
+            self._assert_flag_help(action.choices.values())
+        self.assertGreaterEqual(len(names), 16)
+        for name in names:
+            pattern = rf"(?<![\w-]){re.escape(name)}(?![\w-])"
+            self.assertRegex(readme, pattern, name)
+            self.assertRegex(skill, pattern, name)
+        for url in (
+            "https://gitlab.com/aa22396584/trinity-cli",
+            "https://gitlab.com/aa22396584/chatgpt-dot-cli",
+            "https://gitlab.com/aa22396584/grok-bot-cli",
+            "https://github.com/ImL1s/grok-bot-cli",
+            "https://gitlab.com/aa22396584/muse-web-cli",
+        ):
+            self.assertIn(url, readme)
+
+    def _assert_flag_help(self, parsers) -> None:
+        for parser in parsers:
+            for action in parser._actions:
+                if not action.option_strings and action.dest == "help":
+                    continue
+                if action.help is argparse.SUPPRESS:
+                    continue
+                self.assertTrue(action.help and str(action.help).strip(), action.dest)
 
 
 if __name__ == "__main__":

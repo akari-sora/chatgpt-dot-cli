@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import re
 import time
 import urllib.error
@@ -11,9 +10,11 @@ import urllib.parse
 import urllib.request
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+from chatgpt_dot.platform import codex_auth_path, posix_mode
 
 BASE = "https://chatgpt.com/backend-api"
-AUTH_PATH = os.path.expanduser("~/.codex/auth.json")
 MESSAGE_LIMIT_MAX = 32
 _ID = r"[A-Za-z0-9][A-Za-z0-9._~-]{0,199}"
 _DOT_SUFFIXES = (
@@ -67,9 +68,11 @@ class ApiError(Exception):
         self.status = status
 
 
-def load_auth(path: str = AUTH_PATH) -> tuple[str, str]:
+def load_auth(path: str | Path | None = None) -> tuple[str, str]:
+    target = codex_auth_path() if path is None else Path(path)
+    posix_mode(target)
     try:
-        with open(path, encoding="utf-8") as handle:
+        with target.open(encoding="utf-8") as handle:
             data = json.load(handle)
     except OSError as exc:
         raise AuthError(f"cannot read auth file: {exc.strerror}") from exc
