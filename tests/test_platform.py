@@ -69,11 +69,14 @@ class PlatformTests(unittest.TestCase):
         stderr.reconfigure.assert_called_once()
 
     def test_posix_mode_skipped_on_windows(self):
+        # Build the path first. Python 3.11 refuses to construct a path
+        # while os.name is patched to nt on a POSIX host.
+        path = Path("missing-auth.json")
         with (
             mock.patch("chatgpt_dot.platform.os.name", "nt"),
             mock.patch("chatgpt_dot.platform.sys.platform", "win32"),
         ):
-            self.assertIsNone(posix_mode(Path("missing-auth.json")))
+            self.assertIsNone(posix_mode(path))
 
     def test_posix_mode_on_posix(self):
         # Mock the stat result. Windows chmod does not store Unix 0600 bits,
