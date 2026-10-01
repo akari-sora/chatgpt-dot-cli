@@ -1,6 +1,8 @@
 # chatgpt-dot-cli
 
 [![pipeline status](https://gitlab.com/aa22396584/chatgpt-dot-cli/badges/main/pipeline.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/commits/main)
+[![release](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/badges/release.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/releases)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 [中文](#中文) · [English](#english)
 
@@ -16,7 +18,9 @@ Part of the trinity-cli family / trinity-cli 系列的一部分：<https://gitla
 
 這個 repo 是公開的。需要 Python 3.11、3.12 或 3.13。安裝用 uv 或 pipx。登入來自 Codex 的 ChatGPT 登入檔，CLI 不另外做帳號。
 
-支援的系統：Linux（CI）、Windows（CI）、macOS（本機測試）。
+非官方：這是個人專案，跟 OpenAI 沒有關係，也沒有得到 OpenAI 的背書或支援。它呼叫 ChatGPT app 用的、沒有公開文件的介面，OpenAI 隨時可能改掉。自動化使用可能違反 OpenAI 的使用條款，帳號風險自負。
+
+支援的系統見[平台](#平台)。
 
 ### 安裝
 
@@ -90,7 +94,8 @@ uv tool uninstall chatgpt-dot-cli
    - Linux：`$HOME/.codex/auth.json`
    - macOS：`$HOME/.codex/auth.json`
    - Windows：`%USERPROFILE%\.codex\auth.json`
-3. 檔案在別處時，CLI 用 `--auth 路徑`。MCP 沒有 `--auth`，只讀上面那個預設路徑。
+   - 設了 `CODEX_HOME` 時，Codex 和這個 CLI 都改用 `$CODEX_HOME/auth.json`。
+3. 檔案在別處時，CLI 用 `--auth 路徑`（可以用 `~`）。MCP 沒有 `--auth`，只讀上面那個預設路徑。
 4. 確認可用（唯讀，約數秒）：
 
 ```bash
@@ -135,7 +140,7 @@ sent to Example
 | 旗標 | 預設 | 說明 |
 | --- | --- | --- |
 | `--version` |  | 印出版本後離開 |
-| `--auth PATH` | 家目錄裡的 `.codex/auth.json` | 登入檔路徑。有旗標就必須帶路徑 |
+| `--auth PATH` | `$CODEX_HOME/auth.json`，沒設 `CODEX_HOME` 時是家目錄裡的 `.codex/auth.json` | 登入檔路徑。有旗標就必須帶路徑 |
 | `--json` | 關 | 印遮罩後的 JSON。可放在子指令前或後，不能放在單獨的 `--` 後面 |
 
 沒有子指令時印出說明並以結束碼 2 離開，不呼叫 API。
@@ -273,7 +278,7 @@ chatgpt-dot-cli send -- "hello"
 | 2 | 沒有子指令。印出說明 | 加上 `list` 或其他子指令 |
 | 2 | `chatgpt-dot-cli: error: --auth requires a path` | `--auth` 後面加上檔案路徑 |
 | 2 | `limit must be an integer from 1 to 32` | 把 `--limit` 改到 1..32 |
-| 2 | `cannot read auth file` | 確認登入檔在上面的路徑，或改 `--auth` |
+| 2 | `cannot read auth file: ... Run codex login with a ChatGPT account, or pass --auth PATH.` | 執行 `codex login`，或用 `--auth` 指到登入檔 |
 | 2 | `auth file is not valid json` | 重新 `codex login` |
 | 2 | `auth file is not a chatgpt login` | 用 ChatGPT 帳號登入，不要用 API key 登入檔 |
 | 2 | `auth file has no access token` 或 `auth file has no account id` | 重新 `codex login` |
@@ -290,13 +295,14 @@ chatgpt-dot-cli send -- "hello"
 
 ### 檔案、環境變數、快取、遮罩
 
-CLI 不讀環境變數，也沒有設定檔。唯一讀取的檔案是登入檔：
+CLI 沒有設定檔，只讀一個環境變數：`CODEX_HOME`，用法跟 Codex 一樣。唯一讀取的檔案是登入檔：
 
 | 系統 | 路徑 |
 | --- | --- |
 | Linux | `$HOME/.codex/auth.json` |
 | macOS | `$HOME/.codex/auth.json` |
 | Windows | `%USERPROFILE%\.codex\auth.json` |
+| 設了 `CODEX_HOME` | `$CODEX_HOME/auth.json` |
 
 CLI 不寫入這個檔、不改權限、不在磁碟上做快取，所以沒有檔案鎖。Linux 與 macOS 會看 Unix 權限位，但權限位不會讓讀取失敗。Windows 不檢查 Unix 權限位（那裡用的是 ACL）。Windows 主控台會把 stdout/stderr 設成 UTF-8（`errors=replace`），換行是 LF。
 
@@ -372,11 +378,31 @@ python3 -m unittest discover -s tests -q
 
 CI：預設使用 GitLab.com 的 runner。Linux 跑 Python 3.11、3.12、3.13。Windows 在 tag、手動執行，以及 main 上改到程式、測試或打包檔時跑 Python 3.12。維護者可設定 CI/CD 變數 `LINUX_RUNNER_TAG` 與 `WINDOWS_RUNNER_TAG`，把 job 指到自己的 runner。macOS 沒有 CI。推上 tag 會建立 GitLab Release，並附上 wheel 與 sdist。MIT 授權，見 [LICENSE](LICENSE)。
 
+### 隱私
+
+- 這個 CLI 只連 `chatgpt.com`，用你自己的 ChatGPT 登入。沒有遙測，也不在磁碟上存任何東西。
+- 登入檔只讀不寫，token 不會印出來。`--json` 會遮罩上面列的欄位。
+- 文字輸出和 `--json` 仍然有訊息內容、dot 名稱和 id。貼到 issue 前先刪掉。
+
+### 平台
+
+| 系統 | Python | 驗證方式 |
+| --- | --- | --- |
+| Linux | 3.11、3.12、3.13 | GitLab CI：離線單元測試 |
+| Windows | 3.12 | GitLab CI：同一套測試，改到程式、測試或打包設定時自動跑 |
+| macOS | 3.11、3.12、3.13 | 維護者本機：同一套測試，加上照這份 README 從 tag 安裝的首次使用檢查 |
+
+測試不連 ChatGPT。macOS 沒有 CI。
+
+### 參與開發
+
+見 [CONTRIBUTING.md](CONTRIBUTING.md)。安全問題照 [SECURITY.md](SECURITY.md) 回報，不要開公開 issue。
+
 ### 相關專案
 
 - trinity-cli — 一個 CLI 管三個常駐 agent（Your dot、Grok Bot、Muse）：<https://gitlab.com/aa22396584/trinity-cli>
 - chatgpt-dot-cli — ChatGPT Your dot（這個 repo）：<https://gitlab.com/aa22396584/chatgpt-dot-cli>
-- grok-bot-cli（fork，`gbot`）— Grok Bot：<https://gitlab.com/aa22396584/grok-bot-cli>（鏡像 <https://github.com/ImL1s/grok-bot-cli>）
+- grok-bot-cli（fork，`gbot`）— Grok Bot：<https://gitlab.com/aa22396584/grok-bot-cli>
 - muse-web-cli — 透過網頁使用 Meta Muse：<https://gitlab.com/aa22396584/muse-web-cli>
 
 ---
@@ -391,7 +417,9 @@ CI：預設使用 GitLab.com 的 runner。Linux 跑 Python 3.11、3.12、3.13。
 
 This repo is public. It needs Python 3.11, 3.12, or 3.13. Install with uv or pipx. Auth comes from the Codex ChatGPT login file. This CLI does not have its own account flow.
 
-Supported systems: Linux (CI), Windows (CI), macOS (local tests).
+Unofficial: this is a personal project, not affiliated with, endorsed by, or supported by OpenAI. It calls the undocumented interfaces the ChatGPT app uses, and OpenAI can change them at any time. Automated use may break OpenAI's terms; any account risk is yours.
+
+Supported systems: see [Platforms](#platforms).
 
 ### Install
 
@@ -465,7 +493,8 @@ uv tool uninstall chatgpt-dot-cli
    - Linux: `$HOME/.codex/auth.json`
    - macOS: `$HOME/.codex/auth.json`
    - Windows: `%USERPROFILE%\.codex\auth.json`
-3. If the file is somewhere else, pass `--auth PATH` to the CLI. MCP has no `--auth` flag and reads only the default path above.
+   - When `CODEX_HOME` is set, Codex and this CLI both use `$CODEX_HOME/auth.json` instead.
+3. If the file is somewhere else, pass `--auth PATH` to the CLI (`~` works). MCP has no `--auth` flag and reads only the default path above.
 4. Confirm it works with a read-only command (a few seconds):
 
 ```bash
@@ -510,7 +539,7 @@ Global flags:
 | Flag | Default | Notes |
 | --- | --- | --- |
 | `--version` |  | print the version and exit |
-| `--auth PATH` | `.codex/auth.json` in the home directory | required when the flag is present |
+| `--auth PATH` | `$CODEX_HOME/auth.json`, or `.codex/auth.json` in the home directory when `CODEX_HOME` is unset | required when the flag is present |
 | `--json` | off | redacted JSON. Before or after the subcommand, not after a standalone `--` |
 
 With no subcommand the CLI prints help and exits 2. It does not call the API.
@@ -648,7 +677,7 @@ Text mode prints `sent to NAME`. `--json` is the redacted created message, inclu
 | 2 | No subcommand. Help is printed | Add `list` or another subcommand |
 | 2 | `chatgpt-dot-cli: error: --auth requires a path` | Pass a path after `--auth` |
 | 2 | `limit must be an integer from 1 to 32` | Use `--limit` from 1 to 32 |
-| 2 | `cannot read auth file` | Check the path above, or pass `--auth` |
+| 2 | `cannot read auth file: ... Run codex login with a ChatGPT account, or pass --auth PATH.` | Run `codex login`, or point `--auth` at the login file |
 | 2 | `auth file is not valid json` | Run `codex login` again |
 | 2 | `auth file is not a chatgpt login` | Log in with a ChatGPT account, not an API-key file |
 | 2 | `auth file has no access token` or `auth file has no account id` | Run `codex login` again |
@@ -665,13 +694,14 @@ Text mode prints `sent to NAME`. `--json` is the redacted created message, inclu
 
 ### Files, environment, cache, redaction
 
-The CLI reads no environment variables and has no config file. The only file it reads is the login file:
+The CLI has no config file and reads one environment variable, `CODEX_HOME`, the same way Codex does. The only file it reads is the login file:
 
 | System | Path |
 | --- | --- |
 | Linux | `$HOME/.codex/auth.json` |
 | macOS | `$HOME/.codex/auth.json` |
 | Windows | `%USERPROFILE%\.codex\auth.json` |
+| `CODEX_HOME` set | `$CODEX_HOME/auth.json` |
 
 The CLI does not write that file, does not change its permissions, and does not keep a disk cache, so it takes no file lock. On Linux and macOS it can see Unix mode bits, and those bits never block a read. On Windows it does not check Unix mode bits (Windows uses ACLs). On Windows, stdout and stderr are set to UTF-8 with `errors=replace`, and newlines are LF.
 
@@ -747,9 +777,29 @@ python3 -m unittest discover -s tests -q
 
 CI: jobs use GitLab.com runners by default. Linux runs on Python 3.11, 3.12, and 3.13. Windows runs Python 3.12 on tags, manual runs, and main commits that change code, tests, or packaging. Maintainers can point jobs at their own runners by setting the CI/CD variables `LINUX_RUNNER_TAG` and `WINDOWS_RUNNER_TAG`. There is no macOS CI. Pushing a tag creates a GitLab Release and attaches the wheel and sdist. MIT, see [LICENSE](LICENSE).
 
+### Privacy
+
+- The CLI talks only to `chatgpt.com`, with your own ChatGPT login. There is no telemetry, and nothing is stored on disk.
+- The login file is read, never written, and tokens are never printed. `--json` redacts the fields listed above.
+- Text output and `--json` still contain message text, dot names, and ids. Remove them before pasting into an issue.
+
+### Platforms
+
+| OS | Python | How it was checked |
+| --- | --- | --- |
+| Linux | 3.11, 3.12, 3.13 | GitLab CI: the offline unit suite |
+| Windows | 3.12 | GitLab CI: the same suite, run automatically when code, tests, or packaging change |
+| macOS | 3.11, 3.12, 3.13 | Maintainer machine: the same suite, plus a first-run check that installs from the tag as this README says |
+
+The tests do not contact ChatGPT. There is no macOS CI.
+
+### Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Report security problems as described in [SECURITY.md](SECURITY.md), not in a public issue.
+
 ### Related projects
 
 - trinity-cli — one CLI over three always-on agents (Your dot, Grok Bot, Muse): <https://gitlab.com/aa22396584/trinity-cli>
 - chatgpt-dot-cli — ChatGPT Your dot (this repo): <https://gitlab.com/aa22396584/chatgpt-dot-cli>
-- grok-bot-cli (fork, `gbot`) — Grok Bot: <https://gitlab.com/aa22396584/grok-bot-cli> (mirror <https://github.com/ImL1s/grok-bot-cli>)
+- grok-bot-cli (fork, `gbot`) — Grok Bot: <https://gitlab.com/aa22396584/grok-bot-cli>
 - muse-web-cli — Meta Muse via the web: <https://gitlab.com/aa22396584/muse-web-cli>

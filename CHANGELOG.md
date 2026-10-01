@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- The login file follows `CODEX_HOME`, the same way Codex does. `--auth` expands `~`.
+- A missing login file says where the CLI looked (`~/.codex/auth.json`, `auth.json in CODEX_HOME`, or the `--auth` file) and what to run: `codex login` with a ChatGPT account, or `--auth PATH`. It never prints a full local path.
+- A login file saved with a UTF-8 byte-order mark loads. A file that is not UTF-8 or not a JSON object is an auth error (exit 2), not a traceback.
+- Docs: disclaimer, privacy, platform matrix, and `CODEX_HOME`. CONTRIBUTING.md, SECURITY.md, and issue and merge request templates. The README no longer names the CI runner or a mirror.
+
 ## v0.2.2
 
 Usage docs cover every command, flag, JSON key, and failure mode in zh-TW and English. Help text states defaults and ranges. The auth path is `.codex/auth.json` in the home directory on Linux, macOS, and Windows. Windows consoles are switched to UTF-8 so zh-TW text does not crash cp950 or cp1252. Unix permission bits are not checked on Windows.
@@ -19,7 +26,7 @@ The Release attaches the platform-independent wheel and sdist.
 
 Part of trinity-cli: https://gitlab.com/aa22396584/trinity-cli
 
-Related: https://gitlab.com/aa22396584/chatgpt-dot-cli, https://gitlab.com/aa22396584/grok-bot-cli (mirror https://github.com/ImL1s/grok-bot-cli), https://gitlab.com/aa22396584/muse-web-cli.
+Related: https://gitlab.com/aa22396584/chatgpt-dot-cli, https://gitlab.com/aa22396584/grok-bot-cli, https://gitlab.com/aa22396584/muse-web-cli.
 
 ## v0.2.1
 
@@ -64,3 +71,21 @@ The v0.2.0 tag stays where it is. Its release job failed because `apt-get update
 ### Removed
 
 - The root `client.py` script. Use `chatgpt-dot-cli probe`.
+
+## v0.1.3
+
+- MIT license, GitLab CI tests, and tag-based GitLab Releases.
+- README and skill rewritten. The README says the repo is public and that "Your dot" is the default name until the dot is renamed.
+
+## v0.1.2
+
+- Message speakers are labeled from account ids (`dot:`, `you:`). The skill checks setup with `list`.
+
+## v0.1.1
+
+- README and skill in Traditional Chinese and English.
+
+## v0.1.0
+
+- First release: a read-only client for the Your dot backend, a CLI that reads a dot and can send it a message, a local MCP server with the same commands, and an agent skill.
+- The command and project are named `chatgpt-dot-cli`.

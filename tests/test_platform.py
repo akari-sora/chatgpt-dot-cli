@@ -6,15 +6,48 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from chatgpt_dot.api import load_auth
+from chatgpt_dot.api import AuthError, load_auth
 from chatgpt_dot.platform import FileLock, atomic_write_text, codex_auth_path, configure_stdio, posix_mode
 
 
 class PlatformTests(unittest.TestCase):
+    def setUp(self):
+        patcher = mock.patch.dict(os.environ)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        os.environ.pop("CODEX_HOME", None)
+
     def test_auth_path_is_under_home(self):
         home = Path("C:/Users/example") if os.name == "nt" else Path("/tmp/example-home")
         with mock.patch("chatgpt_dot.platform.Path.home", return_value=home):
             self.assertEqual(codex_auth_path(), home / ".codex" / "auth.json")
+
+    def test_auth_path_follows_codex_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            os.environ["CODEX_HOME"] = tmp
+            self.assertEqual(codex_auth_path(), Path(tmp) / "auth.json")
+            with self.assertRaises(AuthError) as caught:
+                load_auth()
+        self.assertIn("CODEX_HOME", str(caught.exception))
+        self.assertNotIn(tmp, str(caught.exception))
+
+    def test_explicit_auth_path_expands_tilde(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            (home / "auth.json").write_text(
+                json.dumps({"auth_mode": "chatgpt", "tokens": {"access_token": "tok", "account_id": "acct"}}),
+                encoding="utf-8",
+            )
+            with mock.patch.dict(os.environ, {"HOME": tmp, "USERPROFILE": tmp}):
+                self.assertEqual(load_auth("~/auth.json"), ("tok", "acct"))
+
+    def test_auth_file_that_is_not_an_object_is_an_auth_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for body in (b"[1, 2]", b'"text"', b"\xff\xfe\x00"):
+                auth = Path(tmp) / "auth.json"
+                auth.write_bytes(body)
+                with self.assertRaises(AuthError):
+                    load_auth(auth)
 
     def test_load_auth_reads_home_file(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -30,6 +63,27 @@ class PlatformTests(unittest.TestCase):
             )
             with mock.patch("chatgpt_dot.platform.Path.home", return_value=home):
                 self.assertEqual(load_auth(), ("tok", "acct"))
+
+    def test_missing_auth_file_says_how_to_log_in_without_the_home_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            home = Path(tmp)
+            with mock.patch("chatgpt_dot.platform.Path.home", return_value=home):
+                with self.assertRaises(AuthError) as caught:
+                    load_auth()
+        message = str(caught.exception)
+        self.assertTrue(message.startswith("cannot read auth file: "))
+        self.assertIn("~/.codex/auth.json", message)
+        self.assertIn("codex login", message)
+        self.assertNotIn(str(home), message)
+
+    def test_missing_explicit_auth_file_does_not_echo_the_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            missing = Path(tmp) / "elsewhere.json"
+            with self.assertRaises(AuthError) as caught:
+                load_auth(missing)
+        message = str(caught.exception)
+        self.assertIn("the --auth file", message)
+        self.assertNotIn(tmp, message)
 
     def test_configure_stdio_windows(self):
         stdout = mock.Mock()

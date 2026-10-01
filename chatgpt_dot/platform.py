@@ -13,7 +13,10 @@ from pathlib import Path
 
 
 def codex_auth_path() -> Path:
-    """Codex ChatGPT login. Same relative path on Linux, macOS, and Windows."""
+    """Codex ChatGPT login. Codex keeps it under CODEX_HOME when that is set."""
+    codex_home = os.environ.get("CODEX_HOME")
+    if codex_home:
+        return Path(codex_home).expanduser() / "auth.json"
     return Path.home() / ".codex" / "auth.json"
 
 

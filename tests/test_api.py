@@ -985,10 +985,10 @@ class DocsDriftTests(unittest.TestCase):
             "https://gitlab.com/aa22396584/trinity-cli",
             "https://gitlab.com/aa22396584/chatgpt-dot-cli",
             "https://gitlab.com/aa22396584/grok-bot-cli",
-            "https://github.com/ImL1s/grok-bot-cli",
             "https://gitlab.com/aa22396584/muse-web-cli",
         ):
             self.assertIn(url, readme)
+        self.assertNotIn("github.com/ImL1s", readme)
 
     def _assert_flag_help(self, parsers) -> None:
         for parser in parsers:

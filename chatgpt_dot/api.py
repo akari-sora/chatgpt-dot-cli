@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -69,16 +70,25 @@ class ApiError(Exception):
 
 
 def load_auth(path: str | Path | None = None) -> tuple[str, str]:
-    target = codex_auth_path() if path is None else Path(path)
+    target = codex_auth_path() if path is None else Path(path).expanduser()
     posix_mode(target)
     try:
-        with target.open(encoding="utf-8") as handle:
+        with target.open(encoding="utf-8-sig") as handle:
             data = json.load(handle)
     except OSError as exc:
-        raise AuthError(f"cannot read auth file: {exc.strerror}") from exc
-    except json.JSONDecodeError as exc:
+        if path is not None:
+            where = "the --auth file"
+        elif os.environ.get("CODEX_HOME"):
+            where = "auth.json in CODEX_HOME"
+        else:
+            where = "~/.codex/auth.json"
+        raise AuthError(
+            f"cannot read auth file: {exc.strerror} ({where}). "
+            "Run `codex login` with a ChatGPT account, or pass --auth PATH."
+        ) from exc
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise AuthError("auth file is not valid json") from exc
-    if data.get("auth_mode") != "chatgpt":
+    if not isinstance(data, dict) or data.get("auth_mode") != "chatgpt":
         raise AuthError("auth file is not a chatgpt login")
     tokens = data.get("tokens") or {}
     access = tokens.get("access_token")
