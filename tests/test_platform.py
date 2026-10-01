@@ -76,14 +76,16 @@ class PlatformTests(unittest.TestCase):
             self.assertIsNone(posix_mode(Path("missing-auth.json")))
 
     def test_posix_mode_on_posix(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "auth.json"
-            path.write_text("{}", encoding="utf-8", newline="\n")
-            os.chmod(path, 0o600)
-            with mock.patch("chatgpt_dot.platform.os.name", "posix"), mock.patch(
-                "chatgpt_dot.platform.sys.platform", "linux"
-            ):
-                self.assertEqual(posix_mode(path), 0o600)
+        # Mock the stat result. Windows chmod does not store Unix 0600 bits,
+        # so this branch must not depend on the host filesystem.
+        path = Path("auth.json")
+        stat_result = mock.Mock(st_mode=0o100600)
+        with (
+            mock.patch("chatgpt_dot.platform.os.name", "posix"),
+            mock.patch("chatgpt_dot.platform.sys.platform", "linux"),
+            mock.patch.object(Path, "stat", return_value=stat_result),
+        ):
+            self.assertEqual(posix_mode(path), 0o600)
 
     def test_atomic_write_uses_lf_and_replace(self):
         with tempfile.TemporaryDirectory() as tmp:
