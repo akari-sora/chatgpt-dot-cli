@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import sys
-import tempfile
 from pathlib import Path
 
 
@@ -49,62 +48,3 @@ def posix_mode(path: Path) -> int | None:
         return path.stat().st_mode & 0o777
     except OSError:
         return None
-
-
-def atomic_write_text(path: Path, text: str) -> None:
-    """Write UTF-8 LF text via a tempfile in the same directory, then replace."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    tmp = Path(name)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
-            handle.write(text)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, path)
-    except BaseException:
-        tmp.unlink(missing_ok=True)
-        raise
-
-
-class FileLock:
-    """Exclusive lock. fcntl on POSIX, msvcrt on Windows."""
-
-    def __init__(self, path: Path) -> None:
-        self.path = path
-        self._fh = None
-
-    def __enter__(self) -> "FileLock":
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = open(self.path, "a+b")
-        if self._fh.seek(0, os.SEEK_END) == 0:
-            self._fh.write(b"\0")
-            self._fh.flush()
-        self._fh.seek(0)
-        if os.name == "nt":
-            import msvcrt
-
-            msvcrt.locking(self._fh.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-
-            fcntl.flock(self._fh.fileno(), fcntl.LOCK_EX)
-        return self
-
-    def __exit__(self, *exc: object) -> None:
-        fh = self._fh
-        self._fh = None
-        if fh is None:
-            return
-        try:
-            fh.seek(0)
-            if os.name == "nt":
-                import msvcrt
-
-                msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-
-                fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
-        finally:
-            fh.close()

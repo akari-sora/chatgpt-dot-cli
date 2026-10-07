@@ -1,13 +1,12 @@
 import json
 import os
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
 from chatgpt_dot.api import AuthError, load_auth
-from chatgpt_dot.platform import FileLock, atomic_write_text, codex_auth_path, configure_stdio, posix_mode
+from chatgpt_dot.platform import codex_auth_path, configure_stdio, posix_mode
 
 
 class PlatformTests(unittest.TestCase):
@@ -143,30 +142,6 @@ class PlatformTests(unittest.TestCase):
             mock.patch.object(Path, "stat", return_value=stat_result),
         ):
             self.assertEqual(posix_mode(path), 0o600)
-
-    def test_atomic_write_uses_lf_and_replace(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "note.txt"
-            lock = Path(tmp) / "note.lock"
-            with FileLock(lock):
-                atomic_write_text(path, "你好\n")
-            self.assertEqual(path.read_text(encoding="utf-8"), "你好\n")
-            self.assertNotIn(b"\r\n", path.read_bytes())
-
-    def test_file_lock_windows_branch(self):
-        fake = mock.Mock()
-        fake.LK_LOCK = 0
-        fake.LK_UNLCK = 1
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "lock"
-            with (
-                mock.patch("chatgpt_dot.platform.os.name", "nt"),
-                mock.patch("chatgpt_dot.platform.sys.platform", "win32"),
-                mock.patch.dict(sys.modules, {"msvcrt": fake}),
-            ):
-                with FileLock(path):
-                    pass
-        self.assertEqual(fake.locking.call_count, 2)
 
 
 if __name__ == "__main__":
