@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.2.3
 
 - The login file follows `CODEX_HOME`, the same way Codex does. `--auth` expands `~`.
 - A missing login file says where the CLI looked (`~/.codex/auth.json`, `auth.json in CODEX_HOME`, or the `--auth` file) and what to run: `codex login` with a ChatGPT account, or `--auth PATH`. It never prints a full local path.

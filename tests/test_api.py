@@ -827,7 +827,7 @@ class SendAndArgsTests(unittest.TestCase):
                 main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(__version__, out.getvalue())
-        self.assertIn("0.2.2", out.getvalue())
+        self.assertIn("0.2.3", out.getvalue())
 
     def test_unicode_body_exits_3(self):
         def urlopen(req, timeout=0):
@@ -895,9 +895,9 @@ class McpTests(unittest.TestCase):
 
         text = (pathlib.Path(__file__).resolve().parents[1] / "chatgpt_dot" / "mcp_server.py").read_text()
         self.assertIn("[mcp]", text)
-        self.assertIn("@v0.2.2", text)
+        self.assertIn("@v0.2.3", text)
         self.assertIn(
-            'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.2"',
+            'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"',
             text,
         )
         self.assertIn('uv pip install -e ".[mcp]"', text)
