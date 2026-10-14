@@ -322,9 +322,14 @@ def list_messages(
     return [item for item in payload["items"] if isinstance(item, dict)]
 
 
-def send_message(access: str, account: str, room_id: str, text: str) -> dict:
-    if not text.strip():
+def require_text(text: str) -> str:
+    if not isinstance(text, str) or not text.strip():
         raise ApiError("message text is empty")
+    return text
+
+
+def send_message(access: str, account: str, room_id: str, text: str) -> dict:
+    require_text(text)
     request_id = str(uuid.uuid4())
     status, payload = post_json(
         access,

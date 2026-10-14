@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Blank `send` text fails before fetching dots or creating a messaging room. The error remains `message text is empty` (exit 3). MCP rejects blank text before loading auth.
+
 ## v0.2.3
 
 - The login file follows `CODEX_HOME`, the same way Codex does. `--auth` expands `~`.
