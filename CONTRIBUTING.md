@@ -33,10 +33,10 @@ GitLab CI runs the tests on Linux for every push and on Windows for merge reques
 
 ## Release process (maintainers)
 
-1. Bump `version` in `pyproject.toml` and `__version__` in `chatgpt_dot/__init__.py`, then run `uv lock`.
+1. Bump `__version__` in `chatgpt_dot/__init__.py`. `pyproject.toml` loads the package version from that attribute.
 2. Update the install pins (`@vX.Y.Z`) in both README sections.
 3. Add a `## vX.Y.Z` heading (exactly that, no date) at the top of `CHANGELOG.md`. The release job copies that section into the GitLab Release.
 4. Merge to `main` and wait for a green pipeline.
-5. Tag `vX.Y.Z` on `main` and push the tag. The tag pipeline checks that the tag matches `pyproject.toml`, builds the wheel and sdist, and creates the GitLab Release.
+5. Tag `vX.Y.Z` on `main` (the same number as `__version__`) and push the tag. The tag pipeline builds the wheel and sdist and creates the GitLab Release.
 
 Never move or delete a published tag. Fix forward with a new version.
