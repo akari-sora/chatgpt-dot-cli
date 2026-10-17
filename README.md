@@ -1,6 +1,6 @@
 # chatgpt-dot-cli
 
-> 正本和 issue 在 https://gitlab.com/aa22396584/chatgpt-dot-cli；GitHub 上的 https://github.com/hoshitabi/chatgpt-dot-cli 是唯讀鏡像。
+> 正本和 issue 在 https://gitlab.com/aa22396584/chatgpt-dot-cli。
 
 [![pipeline status](https://gitlab.com/aa22396584/chatgpt-dot-cli/badges/main/pipeline.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/commits/main)
 [![release](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/badges/release.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/releases)
