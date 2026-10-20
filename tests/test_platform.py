@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest import mock
 
 from chatgpt_dot.api import AuthError, load_auth
-from chatgpt_dot.platform import codex_auth_path, configure_stdio, posix_mode
+from chatgpt_dot.platform import codex_auth_path, configure_stdio
 
 
 class PlatformTests(unittest.TestCase):
@@ -33,10 +33,12 @@ class PlatformTests(unittest.TestCase):
     def test_explicit_auth_path_expands_tilde(self):
         with tempfile.TemporaryDirectory() as tmp:
             home = Path(tmp)
-            (home / "auth.json").write_text(
+            auth = home / "auth.json"
+            auth.write_text(
                 json.dumps({"auth_mode": "chatgpt", "tokens": {"access_token": "tok", "account_id": "acct"}}),
                 encoding="utf-8",
             )
+            auth.chmod(0o600)
             with mock.patch.dict(os.environ, {"HOME": tmp, "USERPROFILE": tmp}):
                 self.assertEqual(load_auth("~/auth.json"), ("tok", "acct"))
 
@@ -45,6 +47,7 @@ class PlatformTests(unittest.TestCase):
             for body in (b"[1, 2]", b'"text"', b"\xff\xfe\x00"):
                 auth = Path(tmp) / "auth.json"
                 auth.write_bytes(body)
+                auth.chmod(0o600)
                 with self.assertRaises(AuthError):
                     load_auth(auth)
 
@@ -60,6 +63,7 @@ class PlatformTests(unittest.TestCase):
                 encoding="utf-8",
                 newline="\n",
             )
+            auth.chmod(0o600)
             with mock.patch("chatgpt_dot.platform.Path.home", return_value=home):
                 self.assertEqual(load_auth(), ("tok", "acct"))
 
@@ -120,29 +124,6 @@ class PlatformTests(unittest.TestCase):
         ):
             configure_stdio()
         stderr.reconfigure.assert_called_once()
-
-    def test_posix_mode_skipped_on_windows(self):
-        # Build the path first. Python 3.11 refuses to construct a path
-        # while os.name is patched to nt on a POSIX host.
-        path = Path("missing-auth.json")
-        with (
-            mock.patch("chatgpt_dot.platform.os.name", "nt"),
-            mock.patch("chatgpt_dot.platform.sys.platform", "win32"),
-        ):
-            self.assertIsNone(posix_mode(path))
-
-    def test_posix_mode_on_posix(self):
-        # Mock the stat result. Windows chmod does not store Unix 0600 bits,
-        # so this branch must not depend on the host filesystem.
-        path = Path("auth.json")
-        stat_result = mock.Mock(st_mode=0o100600)
-        with (
-            mock.patch("chatgpt_dot.platform.os.name", "posix"),
-            mock.patch("chatgpt_dot.platform.sys.platform", "linux"),
-            mock.patch.object(Path, "stat", return_value=stat_result),
-        ):
-            self.assertEqual(posix_mode(path), 0o600)
-
 
 if __name__ == "__main__":
     unittest.main()

@@ -288,6 +288,8 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | 2 | `auth file is not valid json` | 重新 `codex login` |
 | 2 | `auth file is not a chatgpt login` | 用 ChatGPT 帳號登入，不要用 API key 登入檔 |
 | 2 | `auth file has no access token` 或 `auth file has no account id` | 重新 `codex login` |
+| 2 | `auth file has no valid tokens object` | 重新 `codex login` |
+| 2 | `auth file must be a regular file`、`must not be a symbolic link`、`must be owned by the current user`、或 `permits group or other access; set its mode to 600` | 用自己擁有的一般登入檔，權限 600，不要用符號連結或管線 |
 | 3 | `ChatGPT login expired (401). Open Codex or run codex login, then retry.` | 執行 `codex login` 再試 |
 | 3 | `network error: ...` | 檢查網路後重試 |
 | 3 | `response body was not JSON (likely Cloudflare)` | 等一下再試。`summary` 可改 `--no-activity` |
@@ -311,7 +313,7 @@ CLI 沒有設定檔，只讀一個環境變數：`CODEX_HOME`，用法跟 Codex 
 | Windows | `%USERPROFILE%\.codex\auth.json` |
 | 設了 `CODEX_HOME` | `$CODEX_HOME/auth.json` |
 
-CLI 不寫入這個檔、不改權限、不在磁碟上做快取，所以沒有檔案鎖。Linux 與 macOS 會看 Unix 權限位，但權限位不會讓讀取失敗。Windows 不檢查 Unix 權限位（那裡用的是 ACL）。Windows 主控台會把 stdout/stderr 設成 UTF-8（`errors=replace`），換行是 LF。
+CLI 不寫入這個檔、不改權限、不在磁碟上做快取，所以沒有檔案鎖。Linux 與 macOS 讀取前會檢查已開啟的登入檔：必須是一般檔案、由目前使用者擁有，且群組與其他人不可存取（通常是 600）。最後一層若是符號連結或 FIFO 會被拒絕，而且不會卡住；不檢查 POSIX ACL 或上層目錄。Windows 拒絕一般符號連結與非一般檔案，但不檢查 ACL。Windows 主控台會把 stdout/stderr 設成 UTF-8（`errors=replace`），換行是 LF。
 
 MCP 的 `list` 快取只活在該程序裡，15 秒，`dot_send` 之後清掉。
 
@@ -694,6 +696,8 @@ Text mode prints `sent to NAME`. `--json` is the redacted created message, inclu
 | 2 | `auth file is not valid json` | Run `codex login` again |
 | 2 | `auth file is not a chatgpt login` | Log in with a ChatGPT account, not an API-key file |
 | 2 | `auth file has no access token` or `auth file has no account id` | Run `codex login` again |
+| 2 | `auth file has no valid tokens object` | Run `codex login` again |
+| 2 | `auth file must be a regular file`, `must not be a symbolic link`, `must be owned by the current user`, or `permits group or other access; set its mode to 600` | Use a regular login file you own, mode 600, not a symlink or pipe |
 | 3 | `ChatGPT login expired (401). Open Codex or run codex login, then retry.` | Run `codex login`, then retry |
 | 3 | `network error: ...` | Check the network and retry |
 | 3 | `response body was not JSON (likely Cloudflare)` | Wait and retry. For `summary`, use `--no-activity` |
@@ -717,7 +721,7 @@ The CLI has no config file and reads one environment variable, `CODEX_HOME`, the
 | Windows | `%USERPROFILE%\.codex\auth.json` |
 | `CODEX_HOME` set | `$CODEX_HOME/auth.json` |
 
-The CLI does not write that file, does not change its permissions, and does not keep a disk cache, so it takes no file lock. On Linux and macOS it can see Unix mode bits, and those bits never block a read. On Windows it does not check Unix mode bits (Windows uses ACLs). On Windows, stdout and stderr are set to UTF-8 with `errors=replace`, and newlines are LF.
+The CLI does not write that file, does not change its permissions, and does not keep a disk cache, so it takes no file lock. On Linux and macOS, the opened login file must be a regular file owned by the current user, with no group or other access (normally mode 600). A final-component symlink or FIFO is refused without blocking; POSIX ACLs and parent directories are not checked. Windows rejects ordinary symlinks and non-regular files, and does not inspect ACLs. On Windows, stdout and stderr are set to UTF-8 with `errors=replace`, and newlines are LF.
 
 The MCP `list` cache lives only in that process, for 15 seconds, and is cleared after `dot_send`.
 
