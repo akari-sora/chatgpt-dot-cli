@@ -765,14 +765,17 @@ class SendAndArgsTests(unittest.TestCase):
     def test_send_text_has_no_role(self):
         dot = {"id": "dot-1", "display_name": "N"}
         out = io.StringIO()
+        err = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
             mock.patch("chatgpt_dot.cli.resolve_dot", return_value=dot),
             mock.patch("chatgpt_dot.cli.ensure_room", return_value="room1"),
             mock.patch("chatgpt_dot.cli.send_message", return_value={"id": "m1", "role": "user"}),
             mock.patch("sys.stdout", out),
+            mock.patch("sys.stderr", err),
         ):
             code = main(["send", "hello"])
+        self.assertIn("positional send text is deprecated", err.getvalue())
         self.assertEqual(code, 0)
         self.assertEqual(out.getvalue().strip(), "sent to N")
         self.assertNotIn("role=", out.getvalue())
@@ -785,14 +788,17 @@ class SendAndArgsTests(unittest.TestCase):
             return {"id": "m1", "role": "user"}
 
         out = io.StringIO()
+        err = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
             mock.patch("chatgpt_dot.cli.resolve_dot", return_value={"id": "dot-1", "display_name": "N"}),
             mock.patch("chatgpt_dot.cli.ensure_room", return_value="room1"),
             mock.patch("chatgpt_dot.cli.send_message", side_effect=fake_send),
             mock.patch("sys.stdout", out),
+            mock.patch("sys.stderr", err),
         ):
             code = main(["send", "--", "--json"])
+        self.assertIn("positional send text is deprecated", err.getvalue())
         self.assertEqual(code, 0)
         self.assertEqual(seen["text"], "--json")
         self.assertNotIn("role=", out.getvalue())
