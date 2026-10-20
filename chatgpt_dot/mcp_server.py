@@ -22,6 +22,7 @@ from chatgpt_dot.api import (
     list_messages,
     load_auth,
     require_dot_id,
+    require_text,
     send_message,
 )
 from chatgpt_dot.platform import configure_stdio
@@ -310,6 +311,7 @@ def dot_messages(
 @_tool(_SEND)
 def dot_send(text: str, dot_id: str | None = None) -> str:
     """Send a text message to the dot and return the created message."""
+    require_text(text)
     access, account = load_auth()
     try:
         dot = _listed_dot(access, account, dot_id or None)

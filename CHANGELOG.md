@@ -4,6 +4,7 @@
 
 - HTTP redirects are not followed. The original status is returned; credentials are not sent to a second URL.
 - Control characters in CLI text, JSON, and message summaries are escaped for display. Decoded JSON values are unchanged.
+- Blank `send` text fails before fetching dots or creating a messaging room. The error remains `message text is empty` (exit 3). MCP rejects blank text before loading auth.
 
 ## v0.2.3
 

@@ -18,6 +18,7 @@ from chatgpt_dot.api import (
     list_messages,
     load_auth,
     require_dot_id,
+    require_text,
     resolve_dot,
     send_message,
 )
@@ -213,6 +214,7 @@ def cmd_messages(
 
 
 def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: bool) -> int:
+    require_text(text)
     dot = resolve_dot(access, account, dot_id)
     room = ensure_room(access, account, dot)
     payload = send_message(access, account, room, text)
