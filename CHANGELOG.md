@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- On Linux and macOS, the opened login file must be a regular file owned by the current user, with no group or other access (normally mode 600). A final-component symlink or FIFO is refused without blocking. POSIX ACLs and parent directories are not checked. Windows rejects ordinary symlinks and non-regular files, and still does not inspect ACLs.
+- A `tokens` value that is not a JSON object is an auth error (exit 2), not a traceback. Missing or null `tokens` still reports `auth file has no access token`.
+
 ## v0.2.4
 
 - HTTP redirects are not followed. The original status is returned; credentials are not sent to a second URL.

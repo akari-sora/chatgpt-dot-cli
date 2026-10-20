@@ -13,7 +13,7 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from chatgpt_dot.platform import codex_auth_path, posix_mode
+from chatgpt_dot.platform import LoginFileError, codex_auth_path, open_auth_file
 
 BASE = "https://chatgpt.com/backend-api"
 MESSAGE_LIMIT_MAX = 32
@@ -71,10 +71,11 @@ class ApiError(Exception):
 
 def load_auth(path: str | Path | None = None) -> tuple[str, str]:
     target = codex_auth_path() if path is None else Path(path).expanduser()
-    posix_mode(target)
     try:
-        with target.open(encoding="utf-8-sig") as handle:
+        with open_auth_file(target) as handle:
             data = json.load(handle)
+    except LoginFileError as exc:
+        raise AuthError(str(exc)) from exc
     except OSError as exc:
         if path is not None:
             where = "the --auth file"
@@ -90,7 +91,11 @@ def load_auth(path: str | Path | None = None) -> tuple[str, str]:
         raise AuthError("auth file is not valid json") from exc
     if not isinstance(data, dict) or data.get("auth_mode") != "chatgpt":
         raise AuthError("auth file is not a chatgpt login")
-    tokens = data.get("tokens") or {}
+    tokens = data.get("tokens")
+    if tokens is None:
+        tokens = {}
+    elif not isinstance(tokens, dict):
+        raise AuthError("auth file has no valid tokens object")
     access = tokens.get("access_token")
     account = tokens.get("account_id")
     if not isinstance(access, str) or not access:

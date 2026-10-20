@@ -65,12 +65,12 @@ Run `chatgpt-dot-cli --help` for the full list. Global flags: `--version`, `--au
 - Messages sent from the CLI go to the dot's messaging inbox; the desktop main view can show them a little later.
 - Local computer work still needs the ChatGPT desktop app open.
 - Refuse pause, resume, delete, connect, disconnect, email claim, voice, and any request to call `/ps/orbit`. Read-only except `send`.
-- On Windows the CLI switches stdout and stderr to UTF-8. It does not inspect Unix permission bits there.
+- On Linux and macOS the opened login file must be a regular file owned by the current user, with no group or other access. A final-component symlink or FIFO is refused. On Windows the CLI switches stdout and stderr to UTF-8. It does not inspect Unix permission bits there; it still rejects ordinary symlinks and non-regular files.
 
 ## Troubleshooting
 
 - Exit 0 is OK, including email channel `403` with `ineligible` (that account cannot use email).
-- Exit 2: bad arguments, or the auth file is missing or not a ChatGPT login. `--limit` outside 1..32 is exit 2 and does not call the API. `--auth` without a path is exit 2 (`chatgpt-dot-cli: error: --auth requires a path`).
+- Exit 2: bad arguments, or the auth file is missing, unsafe, malformed, or not a ChatGPT login. `--limit` outside 1..32 is exit 2 and does not call the API. `--auth` without a path is exit 2 (`chatgpt-dot-cli: error: --auth requires a path`).
 - Exit 3: API or network error, including a non-JSON 403/429/503 after one retry (often Cloudflare). `summary` that is slow or empty of activity: rerun with `--no-activity`.
 - On 401, tell the user to run `codex login`.
 - The command needs network access.
