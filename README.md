@@ -26,19 +26,19 @@ Part of the trinity-cli family / trinity-cli 系列的一部分：<https://gitla
 
 ### 安裝
 
-版本釘在 tag `v0.2.3`。
+版本釘在 tag `v0.2.4`。
 
 Linux 或 macOS：
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 chatgpt-dot-cli --version
 ```
 
 或：
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 chatgpt-dot-cli --version
 ```
 
@@ -48,7 +48,7 @@ Windows（PowerShell）：
 
 ```powershell
 irm https://astral.sh/uv/install.ps1 | iex
-uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 chatgpt-dot-cli --version
 ```
 
@@ -56,26 +56,26 @@ Windows 的執行檔在 `%USERPROFILE%\.local\bin\chatgpt-dot-cli.exe`。新開�
 
 ```powershell
 py -3.12 -m pip install --user pipx
-pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 chatgpt-dot-cli --version
 ```
 
-`--version` 會印出 `chatgpt-dot-cli 0.2.3`。
+`--version` 會印出 `chatgpt-dot-cli 0.2.4`。
 
 GitLab Release 另附與平台無關的 wheel 與 sdist。用 pip 裝 wheel：
 
 ```bash
-python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.3/chatgpt_dot_cli-0.2.3-py3-none-any.whl"
+python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.4/chatgpt_dot_cli-0.2.4-py3-none-any.whl"
 ```
 
 升級要重新指定 tag。`uv tool upgrade` 不會把釘在 tag 的安裝移到下一個 tag。
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 ```
 
 ```powershell
-uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 ```
 
 移除：
@@ -336,7 +336,7 @@ HTTP 重新導向不會被跟隨。列印到終端機的文字會把控制字元
 MCP 是可選的。stdio 指令是 `chatgpt-dot-cli-mcp`。它只讀預設登入檔。
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 ```
 
 從這個 repo 的工作目錄：
@@ -349,15 +349,15 @@ uv pip install -e ".[mcp]"
 
 跨 agent（同時問三個、交接、摘要）用 [trinity-cli](https://gitlab.com/aa22396584/trinity-cli)。
 
-給 agent 的 skill：Linux 與 macOS 可以把 tag `v0.2.3` clone 到 `$HOME/.local/share/chatgpt-dot-cli`。目錄已存在時改為 `fetch --tags` 再 `checkout --detach`。目標已存在而且不是 symlink 時，stderr 印跳過，不覆蓋。clone 失敗不會建立連結。
+給 agent 的 skill：Linux 與 macOS 可以把 tag `v0.2.4` clone 到 `$HOME/.local/share/chatgpt-dot-cli`。目錄已存在時改為 `fetch --tags` 再 `checkout --detach`。目標已存在而且不是 symlink 時，stderr 印跳過，不覆蓋。clone 失敗不會建立連結。
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.3
+  git -C "$src" checkout --detach v0.2.4
 else
-  git clone --branch v0.2.3 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.4 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
@@ -427,19 +427,19 @@ Supported systems: see [Platforms](#platforms).
 
 ### Install
 
-Pinned to tag `v0.2.3`.
+Pinned to tag `v0.2.4`.
 
 Linux or macOS:
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 chatgpt-dot-cli --version
 ```
 
 Or:
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 chatgpt-dot-cli --version
 ```
 
@@ -449,7 +449,7 @@ Windows (PowerShell):
 
 ```powershell
 irm https://astral.sh/uv/install.ps1 | iex
-uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 chatgpt-dot-cli --version
 ```
 
@@ -457,26 +457,26 @@ On Windows the executable is `%USERPROFILE%\.local\bin\chatgpt-dot-cli.exe`. Ope
 
 ```powershell
 py -3.12 -m pip install --user pipx
-pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 chatgpt-dot-cli --version
 ```
 
-`--version` prints `chatgpt-dot-cli 0.2.3`.
+`--version` prints `chatgpt-dot-cli 0.2.4`.
 
 The GitLab Release also attaches a platform-independent wheel and sdist. Install the wheel with pip:
 
 ```bash
-python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.3/chatgpt_dot_cli-0.2.3-py3-none-any.whl"
+python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.4/chatgpt_dot_cli-0.2.4-py3-none-any.whl"
 ```
 
 To upgrade, install that tag again. `uv tool upgrade` will not move an install that is pinned to a tag.
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
 ```
 
 ```powershell
-uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 ```
 
 Uninstall:
@@ -737,7 +737,7 @@ This tool never pauses, resumes, or deletes a dot, never connects or disconnects
 MCP is optional. The stdio command is `chatgpt-dot-cli-mcp`. It reads only the default login file.
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.3"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
 ```
 
 From a checkout of this repo:
@@ -750,15 +750,15 @@ If the MCP package is missing, `chatgpt-dot-cli-mcp` exits 1 and prints those tw
 
 For cross-agent work (ask all three, hand off, digest) use [trinity-cli](https://gitlab.com/aa22396584/trinity-cli).
 
-Agent skill install on Linux and macOS: clone tag `v0.2.3` to `$HOME/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone. A failed clone creates no links.
+Agent skill install on Linux and macOS: clone tag `v0.2.4` to `$HOME/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone. A failed clone creates no links.
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.3
+  git -C "$src" checkout --detach v0.2.4
 else
-  git clone --branch v0.2.3 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.4 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
