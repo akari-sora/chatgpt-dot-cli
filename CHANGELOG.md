@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `send --stdin` reads message text from stdin. Positional text still works and prints a deprecation warning on stderr. MCP `dot_send` is unchanged.
+
 ## v0.2.4
 
 - HTTP redirects are not followed. The original status is returned; credentials are not sent to a second URL.

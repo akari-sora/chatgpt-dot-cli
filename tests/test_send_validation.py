@@ -12,9 +12,11 @@ import urllib.response
 from chatgpt_dot.api import ApiError, send_message
 from chatgpt_dot.cli import main
 
+DEPRECATED = "chatgpt-dot-cli: warning: positional send text is deprecated; use --stdin\n"
+
 
 class SendValidationTests(unittest.TestCase):
-    def run_send(self, text, dot_id=None):
+    def run_send(self, text, dot_id=None, *, from_stdin=False):
         calls = []
 
         def transport(handler, http_class, req, **kwargs):
@@ -42,24 +44,46 @@ class SendValidationTests(unittest.TestCase):
             argv = ["--auth", str(auth), "send"]
             if dot_id:
                 argv += ["--dot-id", dot_id]
+            extra = ["--stdin"] if from_stdin else ["--", text]
+            stdin_text = text if from_stdin else ""
             out, err = io.StringIO(), io.StringIO()
             with (
                 mock.patch("urllib.request.AbstractHTTPHandler.do_open", transport),
+                mock.patch("sys.stdin", io.StringIO(stdin_text)),
                 contextlib.redirect_stdout(out),
                 contextlib.redirect_stderr(err),
             ):
-                code = main(argv + ["--", text])
+                code = main(argv + extra)
         return code, out.getvalue(), err.getvalue(), calls
 
     def test_cli_blank_text_never_fetches_or_creates_room(self):
         for text, dot_id in (("   ", None), ("", None), ("\n\t ", "dot_example")):
             with self.subTest(text=text, dot_id=dot_id):
                 code, out, err, calls = self.run_send(text, dot_id)
+                self.assertEqual((code, out, err), (3, "", DEPRECATED + "message text is empty\n"))
+                self.assertEqual(calls, [])
+
+    def test_cli_blank_stdin_never_fetches_or_creates_room(self):
+        for text, dot_id in (("   ", None), ("", None), ("\n\t ", "dot_example")):
+            with self.subTest(text=text, dot_id=dot_id):
+                code, out, err, calls = self.run_send(text, dot_id, from_stdin=True)
                 self.assertEqual((code, out, err), (3, "", "message text is empty\n"))
                 self.assertEqual(calls, [])
 
     def test_valid_text_creates_room_then_sends_unchanged_text(self):
         code, out, err, calls = self.run_send(" hello ")
+        self.assertEqual((code, out, err), (0, "sent to Example\n", DEPRECATED))
+        self.assertEqual([(method, path) for method, path, _ in calls], [
+            ("GET", "/tbo"),
+            ("POST", "/tbo/dot_example/messaging-room"),
+            ("POST", "/messaging/rooms/room_example/messages"),
+        ])
+        body = json.loads(calls[-1][2])
+        self.assertEqual(body["content"]["text"], " hello ")
+        self.assertEqual(body["request_id"], body["idempotency_token"])
+
+    def test_stdin_creates_room_then_sends_unchanged_text(self):
+        code, out, err, calls = self.run_send(" hello ", from_stdin=True)
         self.assertEqual((code, out, err), (0, "sent to Example\n", ""))
         self.assertEqual([(method, path) for method, path, _ in calls], [
             ("GET", "/tbo"),

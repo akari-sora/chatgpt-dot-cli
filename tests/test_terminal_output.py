@@ -37,12 +37,14 @@ def _message():
 
 
 class TerminalOutputTests(unittest.TestCase):
-    def invoke(self, argv, **returns):
+    def invoke(self, argv, stdin_text=None, **returns):
         out, err = io.StringIO(), io.StringIO()
         with ExitStack() as stack:
             stack.enter_context(mock.patch("chatgpt_dot.cli.load_auth", return_value=("fake", "account_example")))
             stack.enter_context(mock.patch("sys.stdout", out))
             stack.enter_context(mock.patch("sys.stderr", err))
+            if stdin_text is not None:
+                stack.enter_context(mock.patch("sys.stdin", io.StringIO(stdin_text)))
             for name, value in returns.items():
                 stack.enter_context(mock.patch(f"chatgpt_dot.cli.{name}", return_value=value))
             code = main(argv)
@@ -176,14 +178,16 @@ class TerminalOutputTests(unittest.TestCase):
     def test_send_confirmation_and_raw_payload(self):
         payload = {"content": {"text": TEXT}}
         code, out, err = self.invoke(
-            ["send", "--", "hello"],
+            ["send", "--stdin"],
+            stdin_text="hello",
             resolve_dot=_dot(),
             ensure_room="room_example",
             send_message=payload,
         )
         self.assertEqual((code, out, err), (0, "sent to " + VISIBLE_NAME + "\n", ""))
         code, out, err = self.invoke(
-            ["send", "--json", "--", "hello"],
+            ["send", "--json", "--stdin"],
+            stdin_text="hello",
             resolve_dot=_dot(),
             ensure_room="room_example",
             send_message=payload,
