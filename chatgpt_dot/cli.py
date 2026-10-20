@@ -56,6 +56,7 @@ _SUMMARY_READS = (
 
 
 def _emit(text: str, *, file=None) -> None:
+    # Human text only. JSON must use print(dumps(...)) so indent newlines stay valid.
     print(printable(text), file=file)
 
 
@@ -207,7 +208,7 @@ def cmd_messages(
         return 0
     _emit(f"{name} messages={len(ordered)}")
     for line in lines:
-        print(line)
+        _emit(line)
     return 0
 
 

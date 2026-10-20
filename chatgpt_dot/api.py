@@ -193,8 +193,6 @@ def request_json(
             url,
             data=payload,
             headers={
-                "Authorization": f"Bearer {access}",
-                "ChatGPT-Account-Id": account,
                 "Accept": "application/json",
                 "User-Agent": "Codex Desktop",
                 "originator": "Codex Desktop",
@@ -203,6 +201,8 @@ def request_json(
             },
             method=method,
         )
+        req.add_unredirected_header("Authorization", f"Bearer {access}")
+        req.add_unredirected_header("ChatGPT-Account-Id", account)
         try:
             with _urlopen(req, timeout=30) as resp:
                 status = resp.status
