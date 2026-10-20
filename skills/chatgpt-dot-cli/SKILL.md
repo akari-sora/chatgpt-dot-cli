@@ -26,13 +26,13 @@ For cross-agent tasks (ask all three, hand off, digest) use the `trinity-cli` sk
    Linux or macOS:
 
    ```bash
-   uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4
+   uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
    ```
 
    Windows PowerShell:
 
    ```powershell
-   uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"
+   uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
    ```
 
 3. Run `summary` only when the user asks for status. A bare `chatgpt-dot-cli` is not a summary: with no subcommand it prints help and exits 2, and it does not call the API. `summary --no-activity` skips the slow activity read. The default is to fetch activity.

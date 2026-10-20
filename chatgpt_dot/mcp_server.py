@@ -28,7 +28,7 @@ from chatgpt_dot.api import (
 from chatgpt_dot.platform import configure_stdio
 from chatgpt_dot.summaries import aeon_member_note, dot_name, dot_sender_ids, dumps, message_line, oldest_first
 
-MCP_INSTALL = 'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.4"'
+MCP_INSTALL = 'uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"'
 MCP_EDITABLE = 'uv pip install -e ".[mcp]"'
 MISSING_MCP = (
     "MCP is optional. Install it with:\n"
