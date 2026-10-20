@@ -22,7 +22,16 @@ from chatgpt_dot.api import (
     send_message,
 )
 from chatgpt_dot.platform import configure_stdio
-from chatgpt_dot.summaries import aeon_member_note, dot_name, dot_sender_ids, dumps, field_lines, message_line, oldest_first
+from chatgpt_dot.summaries import (
+    aeon_member_note,
+    dot_name,
+    dot_sender_ids,
+    dumps,
+    field_lines,
+    message_line,
+    oldest_first,
+    printable,
+)
 
 # Re-export the suffix tuple the probe prints. Defined here to avoid a cycle.
 READS_PER_DOT = (
@@ -44,6 +53,10 @@ _SUMMARY_READS = (
     ("environment", "/environment/status"),
     ("email", "/channels/email"),
 )
+
+
+def _emit(text: str, *, file=None) -> None:
+    print(printable(text), file=file)
 
 
 def _detail_code(payload: object) -> str | None:
@@ -72,7 +85,7 @@ def _finish(label: str, status: int, payload: object, *, ok: bool = False) -> in
     if _html_block(status, payload):
         print(_CLOUDFLARE, file=sys.stderr)
         return 3
-    print(_failure_line(label, status, payload), file=sys.stderr)
+    _emit(_failure_line(label, status, payload), file=sys.stderr)
     return 3
 
 
@@ -101,7 +114,7 @@ def cmd_usage(access: str, account: str, as_json: bool) -> int:
         print(dumps({"status": status, "body": payload}))
     else:
         plan = payload.get("plan_type") if isinstance(payload, dict) else None
-        print(f"{status} GET /wham/usage plan_type={plan}")
+        _emit(f"{status} GET /wham/usage plan_type={plan}")
     return _finish("GET /wham/usage", status, payload)
 
 
@@ -110,9 +123,9 @@ def cmd_primary(access: str, account: str, as_json: bool) -> int:
     if as_json:
         print(dumps({"status": status, "body": payload}))
     else:
-        print(f"{status} GET /tbo/primary")
+        _emit(f"{status} GET /tbo/primary")
         for line in field_lines(payload)[:24]:
-            print(f"  {line}")
+            _emit(f"  {line}")
     return _finish("GET /tbo/primary", status, payload)
 
 
@@ -122,7 +135,7 @@ def cmd_list(access: str, account: str, as_json: bool) -> int:
         print(dumps(dots))
         return 0
     for item in dots:
-        print(
+        _emit(
             f"id={item.get('id')} {dot_name(item)} status={item.get('status')} "
             f"paused={item.get('is_paused')} kind={item.get('aeon_kind')}"
         )
@@ -136,9 +149,9 @@ def cmd_show(access: str, account: str, dot_id: str | None, as_json: bool) -> in
     if as_json:
         print(dumps({"status": status, "body": payload}))
     else:
-        print(f"{status} {dot_name(dot)}")
+        _emit(f"{status} {dot_name(dot)}")
         for line in field_lines(payload)[:24]:
-            print(f"  {line}")
+            _emit(f"  {line}")
     return _finish("GET /tbo/{id}", status, payload)
 
 
@@ -149,11 +162,11 @@ def _suffix(access: str, account: str, dot_id: str | None, suffix: str, as_json:
     if as_json:
         print(dumps({"status": status, "body": payload, "info": info}))
     else:
-        print(f"{status} GET /tbo/{{id}}{suffix}")
+        _emit(f"{status} GET /tbo/{{id}}{suffix}")
         if info:
             print("  email channel ineligible")
         for line in field_lines(payload)[:24]:
-            print(f"  {line}")
+            _emit(f"  {line}")
     return _finish(f"GET /tbo/{{id}}{suffix}", status, payload, ok=info)
 
 
@@ -192,7 +205,7 @@ def cmd_messages(
     if as_json:
         print(dumps({"name": name, "lines": lines, "messages": ordered}))
         return 0
-    print(f"{name} messages={len(ordered)}")
+    _emit(f"{name} messages={len(ordered)}")
     for line in lines:
         print(line)
     return 0
@@ -205,7 +218,7 @@ def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: 
     if as_json:
         print(dumps(payload))
     else:
-        print(f"sent to {dot_name(dot)}")
+        _emit(f"sent to {dot_name(dot)}")
     return 0
 
 
@@ -219,9 +232,9 @@ def cmd_by_thread(access: str, account: str, thread_id: str | None, dot_id: str 
     if as_json:
         print(dumps({"status": status, "body": payload}))
     else:
-        print(f"{status} GET /tbo/by-thread/{{thread_id}}")
+        _emit(f"{status} GET /tbo/by-thread/{{thread_id}}")
         for line in field_lines(payload)[:24]:
-            print(f"  {line}")
+            _emit(f"  {line}")
     return _finish("GET /tbo/by-thread/{thread_id}", status, payload)
 
 
@@ -345,26 +358,26 @@ def cmd_summary(access: str, account: str, as_json: bool, include_activity: bool
     }
     if problems:
         for line in problems:
-            print(line, file=sys.stderr)
+            _emit(line, file=sys.stderr)
         if as_json:
             print(dumps(body))
         return 3
     if as_json:
         print(dumps(body))
         return 0
-    print(f"plan_type={plan}")
+    _emit(f"plan_type={plan}")
     selection = primary.get("selection") if isinstance(primary, dict) else None
     available = selection.get("available") if isinstance(selection, dict) else None
-    print(f"primary available={available}")
+    _emit(f"primary available={available}")
     for row in rows:
         activity = "skipped" if not include_activity else row["activity"]
-        print(
+        _emit(
             f"{row['name']} status={row['status']} paused={row['paused']} kind={row['kind']} "
             f"threads={row['threads']} activity={activity} computers={row['computers']} "
             f"automations={row['automations']} environment={row['environment']} email={row['email']}"
         )
         for line in row["recent"]:
-            print(f"  {line}")
+            _emit(f"  {line}")
     return 0
 
 
@@ -453,7 +466,8 @@ def cmd_probe(access: str, account: str, as_json: bool) -> int:
             )
         )
     else:
-        print("\n".join(lines))
+        for line in lines:
+            _emit(line)
     return 0
 
 
@@ -649,7 +663,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         access, account = load_auth(auth_path)
     except AuthError as exc:
-        print(str(exc), file=sys.stderr)
+        _emit(str(exc), file=sys.stderr)
         return 2
     dot_id = _picked_dot(args)
     try:
@@ -682,7 +696,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command in _SUFFIX:
             return _suffix(access, account, dot_id, _SUFFIX[args.command], as_json)
     except ApiError as exc:
-        print(str(exc), file=sys.stderr)
+        _emit(str(exc), file=sys.stderr)
         return 3
     parser.error(f"unknown command {args.command}")
     return 2
