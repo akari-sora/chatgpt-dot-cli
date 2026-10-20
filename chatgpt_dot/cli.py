@@ -509,14 +509,16 @@ def build_parser() -> argparse.ArgumentParser:
             "  chatgpt-dot-cli messages --limit 10\n"
             "  chatgpt-dot-cli messages --before MESSAGE_ID --limit 5\n"
             "  chatgpt-dot-cli summary --no-activity\n"
-            "  chatgpt-dot-cli send -- \"-text starting with a dash\"\n"
+            "  chatgpt-dot-cli send --stdin < message.txt\n"
             "  chatgpt-dot-cli threads --dot-id ID\n"
             "A command is required. With no command the CLI prints this help and exits 2.\n"
             "--json may appear before or after the command, but not after a standalone --.\n"
             "--json defaults to off. --auth defaults to .codex/auth.json in the home directory.\n"
             "--limit defaults to 20 and must be from 1 to 32.\n"
             "--before and --after each take one message id and return a single page.\n"
-            "The CLI does not send cursor and does not follow further pages."
+            "The CLI does not send cursor and does not follow further pages.\n"
+            "send --stdin reads message text from stdin. Positional send text still works\n"
+            "and prints a deprecation warning on stderr."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -598,8 +600,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="one message id; return that newer page and stop (default: none)",
     )
 
-    send = _parser(sub, "send", "send a text message to the dot", 'chatgpt-dot-cli send -- "hello"')
-    send.add_argument("text", help="message text. Put -- before text that starts with a dash")
+    send = _parser(sub, "send", "send a text message to the dot", "chatgpt-dot-cli send --stdin < message.txt")
+    send.add_argument(
+        "text",
+        nargs="?",
+        help="message text (deprecated; use --stdin). Put -- before text that starts with a dash",
+    )
+    send.add_argument(
+        "--stdin",
+        action="store_true",
+        help="read UTF-8 message text from stdin; cannot be combined with positional text",
+    )
     send.add_argument(
         "--dot-id",
         dest="dot_id_opt",
@@ -611,6 +622,38 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _picked_dot(args: argparse.Namespace) -> str | None:
     return getattr(args, "dot_id_opt", None) or getattr(args, "dot_id", None)
+
+
+def _read_send_stdin() -> str:
+    buffer = getattr(sys.stdin, "buffer", None)
+    if buffer is not None:
+        return buffer.read().decode("utf-8")
+    return sys.stdin.read()
+
+
+def _resolve_send_text(args: argparse.Namespace) -> str | None:
+    using_stdin = bool(getattr(args, "stdin", False))
+    text = getattr(args, "text", None)
+    if using_stdin and text is not None:
+        print("chatgpt-dot-cli: error: send cannot use --stdin with positional text", file=sys.stderr)
+        return None
+    if using_stdin:
+        try:
+            return _read_send_stdin()
+        except (OSError, UnicodeError):
+            print(
+                "chatgpt-dot-cli: error: cannot read send input; provide UTF-8 text on stdin",
+                file=sys.stderr,
+            )
+            return None
+    if text is None:
+        print("chatgpt-dot-cli: error: send requires message text or --stdin", file=sys.stderr)
+        return None
+    print(
+        "chatgpt-dot-cli: warning: positional send text is deprecated; use --stdin",
+        file=sys.stderr,
+    )
+    return text
 
 
 _SUFFIX = {
@@ -663,6 +706,11 @@ def main(argv: list[str] | None = None) -> int:
     if not args.command:
         parser.print_help()
         return 2
+    send_text = None
+    if args.command == "send":
+        send_text = _resolve_send_text(args)
+        if send_text is None:
+            return 2
     try:
         access, account = load_auth(auth_path)
     except AuthError as exc:
@@ -695,7 +743,7 @@ def main(argv: list[str] | None = None) -> int:
                 after=args.after,
             )
         if args.command == "send":
-            return cmd_send(access, account, dot_id, args.text, as_json)
+            return cmd_send(access, account, dot_id, send_text, as_json)
         if args.command in _SUFFIX:
             return _suffix(access, account, dot_id, _SUFFIX[args.command], as_json)
     except ApiError as exc:

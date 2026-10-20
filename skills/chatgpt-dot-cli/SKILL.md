@@ -55,7 +55,7 @@ Run `chatgpt-dot-cli --help` for the full list. Global flags: `--version`, `--au
 - `threads`, `activity`, `root-thread`, `computers`, `env`, `automations`, `email-status` — same `--dot-id` or positional id. Default: the only dot
 - `by-thread` — optional `thread_id` (default: the dot's active root thread) and `--dot-id` (used only when the thread id is omitted; default: the only dot)
 - `messages` — `--dot-id` only (no positional id), `--limit` default 20 range 1..32, `--before` one message id (default: none), `--after` one message id (default: none). Does not create a room. JSON keys: `name`, `lines`, `messages`, and `note` when there is no room. `messages` are oldest to newest; `lines` are newest first
-- `send TEXT` — `--dot-id` default the only dot. `chatgpt-dot-cli send -- "-text starting with a dash"`. Text mode prints `sent to NAME`. Do not send unless the user asked
+- `send` — prefer `--stdin` for UTF-8 message text (`printf 'hello' | chatgpt-dot-cli send --stdin`). Positional TEXT still works and warns on stderr. `--dot-id` default the only dot. Do not combine `--stdin` with positional text. Text mode prints `sent to NAME`. Do not send unless the user asked
 
 ## Rules
 
@@ -70,7 +70,7 @@ Run `chatgpt-dot-cli --help` for the full list. Global flags: `--version`, `--au
 ## Troubleshooting
 
 - Exit 0 is OK, including email channel `403` with `ineligible` (that account cannot use email).
-- Exit 2: bad arguments, or the auth file is missing or not a ChatGPT login. `--limit` outside 1..32 is exit 2 and does not call the API. `--auth` without a path is exit 2 (`chatgpt-dot-cli: error: --auth requires a path`).
+- Exit 2: bad arguments, or the auth file is missing or not a ChatGPT login. `--limit` outside 1..32 is exit 2 and does not call the API. `--auth` without a path is exit 2 (`chatgpt-dot-cli: error: --auth requires a path`). `send` with neither text nor `--stdin`, or with both, is exit 2.
 - Exit 3: API or network error, including a non-JSON 403/429/503 after one retry (often Cloudflare). `summary` that is slow or empty of activity: rerun with `--no-activity`.
 - On 401, tell the user to run `codex login`.
 - The command needs network access.
