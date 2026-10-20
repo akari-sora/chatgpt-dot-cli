@@ -97,6 +97,69 @@ class SendStdinTests(unittest.TestCase):
         room.assert_not_called()
         send.assert_not_called()
 
+    def test_stdin_utf8_bytes_are_sent_unchanged(self):
+        class BytesStdin:
+            def __init__(self, data):
+                self.buffer = io.BytesIO(data)
+                self._data = data
+
+            def read(self, *args, **kwargs):
+                return self._data.decode("latin-1")
+
+        out, err = io.StringIO(), io.StringIO()
+        seen = {}
+
+        def fake_send(access, account, room, text):
+            seen["text"] = text
+            return {"id": "message_example"}
+
+        with (
+            mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
+            mock.patch(
+                "chatgpt_dot.cli.resolve_dot",
+                return_value={"id": "dot_example", "display_name": "Example"},
+            ),
+            mock.patch("chatgpt_dot.cli.ensure_room", return_value="room_example"),
+            mock.patch("chatgpt_dot.cli.send_message", side_effect=fake_send),
+            mock.patch("sys.stdout", out),
+            mock.patch("sys.stderr", err),
+            mock.patch("sys.stdin", BytesStdin("你好".encode("utf-8"))),
+        ):
+            code = main(["send", "--stdin"])
+        self.assertEqual((code, out.getvalue(), err.getvalue(), seen["text"]), (0, "sent to Example\n", "", "你好"))
+
+    def test_stdin_invalid_bytes_rejected_before_auth(self):
+        class BytesStdin:
+            buffer = io.BytesIO(b"\xff")
+            _data = b"\xff"
+
+            def read(self, *args, **kwargs):
+                return self._data.decode("latin-1")
+
+        out, err = io.StringIO(), io.StringIO()
+        with (
+            mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")) as auth,
+            mock.patch("chatgpt_dot.cli.send_message", side_effect=AssertionError("send")) as send,
+            mock.patch("sys.stdout", out),
+            mock.patch("sys.stderr", err),
+            mock.patch("sys.stdin", BytesStdin()),
+        ):
+            code = main(["send", "--stdin"])
+        self.assertEqual(code, 2)
+        self.assertEqual(out.getvalue(), "")
+        self.assertIn("cannot read send input; provide UTF-8 text on stdin", err.getvalue())
+        self.assertNotIn("Traceback", err.getvalue())
+        auth.assert_not_called()
+        send.assert_not_called()
+
+    def test_stdin_with_dot_id(self):
+        code, out, err, seen, _, resolve, *_ = self.invoke(
+            ["send", "--stdin", "--dot-id", "dot_example"],
+            stdin="hello",
+        )
+        self.assertEqual((code, out, err, seen["text"]), (0, "sent to Example\n", "", "hello"))
+        self.assertEqual(resolve.call_args.args[2], "dot_example")
+
     def test_stdin_read_failure_does_not_echo_exception(self):
         class Broken(io.StringIO):
             def read(self, *args, **kwargs):

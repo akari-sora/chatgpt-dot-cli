@@ -258,7 +258,7 @@ chatgpt-dot-cli messages --limit 2
 
 #### `send`
 
-唯一會寫入的指令。把文字傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取文字，避免訊息出現在 argv 或 shell 歷史。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
+唯一會寫入的指令。把文字傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取 UTF-8 文字，避免訊息出現在 argv 或 shell 歷史。stdin 內容會原樣送出，包含檔案或 `echo` 結尾的換行。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
 
 ```bash
 chatgpt-dot-cli send --help
@@ -267,7 +267,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 
 | 旗標 | 預設 |
 | --- | --- |
-| `--stdin` | 從 stdin 讀取文字 |
+| `--stdin` | 從 stdin 讀取 UTF-8 文字 |
 | 位置參數 `text` | 已棄用，仍可用。以 `-` 開頭時前面加 `--` |
 | `--dot-id` | 唯一的 dot |
 
@@ -297,7 +297,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | 3 | `no dot on this account` | 先在 ChatGPT 建立 dot |
 | 3 | `dot has no active root thread` | `by-thread` 改傳 thread id，或先開一個對話 |
 | 3 | `message text is empty` | `send` 要有文字 |
-| 0 | stderr：`positional send text is deprecated; use --stdin` | 改用 `--stdin`。訊息仍已送出 |
+| 0 | stderr：`chatgpt-dot-cli: warning: positional send text is deprecated; use --stdin` | 改用 `--stdin`。訊息仍已送出 |
 | 0 | stderr：`messaging_room_preview has no aeon member` | 說話者標成 `unknown:`。不是失敗 |
 
 ### 檔案、環境變數、快取、遮罩
@@ -664,7 +664,7 @@ The CLI does not send `cursor` and does not follow further pages. `--json` keys 
 
 #### `send`
 
-The only command that writes. It posts text into the dot's messaging inbox. Prefer `--stdin` so the text is not in argv or shell history. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
+The only command that writes. It posts text into the dot's messaging inbox. Prefer `--stdin` so the UTF-8 text is not in argv or shell history. Stdin is sent unchanged, including a trailing newline from a file or `echo`. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
 
 ```bash
 chatgpt-dot-cli send --help
@@ -673,7 +673,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 
 | Flag | Default |
 | --- | --- |
-| `--stdin` | read message text from stdin |
+| `--stdin` | read UTF-8 message text from stdin |
 | positional `text` | deprecated; still accepted. Put `--` before text that starts with `-` |
 | `--dot-id` | the only dot |
 
@@ -703,7 +703,7 @@ Text mode prints `sent to NAME`. `--json` is the redacted created message, inclu
 | 3 | `no dot on this account` | Create a dot in ChatGPT first |
 | 3 | `dot has no active root thread` | Pass a thread id to `by-thread`, or open a chat first |
 | 3 | `message text is empty` | `send` needs text |
-| 0 | stderr: `positional send text is deprecated; use --stdin` | Switch to `--stdin`. The message was still sent |
+| 0 | stderr: `chatgpt-dot-cli: warning: positional send text is deprecated; use --stdin` | Switch to `--stdin`. The message was still sent |
 | 0 | stderr: `messaging_room_preview has no aeon member` | Lines say `unknown:`. This is not a failure |
 
 ### Files, environment, cache, redaction

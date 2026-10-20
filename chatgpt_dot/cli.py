@@ -609,7 +609,7 @@ def build_parser() -> argparse.ArgumentParser:
     send.add_argument(
         "--stdin",
         action="store_true",
-        help="read message text from stdin",
+        help="read UTF-8 message text from stdin; cannot be combined with positional text",
     )
     send.add_argument(
         "--dot-id",
@@ -624,6 +624,13 @@ def _picked_dot(args: argparse.Namespace) -> str | None:
     return getattr(args, "dot_id_opt", None) or getattr(args, "dot_id", None)
 
 
+def _read_send_stdin() -> str:
+    buffer = getattr(sys.stdin, "buffer", None)
+    if buffer is not None:
+        return buffer.read().decode("utf-8")
+    return sys.stdin.read()
+
+
 def _resolve_send_text(args: argparse.Namespace) -> str | None:
     using_stdin = bool(getattr(args, "stdin", False))
     text = getattr(args, "text", None)
@@ -632,7 +639,7 @@ def _resolve_send_text(args: argparse.Namespace) -> str | None:
         return None
     if using_stdin:
         try:
-            return sys.stdin.read()
+            return _read_send_stdin()
         except (OSError, UnicodeError):
             print(
                 "chatgpt-dot-cli: error: cannot read send input; provide UTF-8 text on stdin",

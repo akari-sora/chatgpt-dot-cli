@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- `send --stdin` reads message text from stdin. Positional text still works and prints a deprecation warning on stderr. MCP `dot_send` is unchanged.
+- `send --stdin` reads UTF-8 message text from stdin. Positional text still works and prints a deprecation warning on stderr. MCP `dot_send` is unchanged.
 
 ## v0.2.4
 

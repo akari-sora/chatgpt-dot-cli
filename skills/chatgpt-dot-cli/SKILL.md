@@ -55,7 +55,7 @@ Run `chatgpt-dot-cli --help` for the full list. Global flags: `--version`, `--au
 - `threads`, `activity`, `root-thread`, `computers`, `env`, `automations`, `email-status` — same `--dot-id` or positional id. Default: the only dot
 - `by-thread` — optional `thread_id` (default: the dot's active root thread) and `--dot-id` (used only when the thread id is omitted; default: the only dot)
 - `messages` — `--dot-id` only (no positional id), `--limit` default 20 range 1..32, `--before` one message id (default: none), `--after` one message id (default: none). Does not create a room. JSON keys: `name`, `lines`, `messages`, and `note` when there is no room. `messages` are oldest to newest; `lines` are newest first
-- `send` — prefer `--stdin` for message text (`printf 'hello' | chatgpt-dot-cli send --stdin`). Positional TEXT still works and warns on stderr. `--dot-id` default the only dot. Do not combine `--stdin` with positional text. Text mode prints `sent to NAME`. Do not send unless the user asked
+- `send` — prefer `--stdin` for UTF-8 message text (`printf 'hello' | chatgpt-dot-cli send --stdin`). Positional TEXT still works and warns on stderr. `--dot-id` default the only dot. Do not combine `--stdin` with positional text. Text mode prints `sent to NAME`. Do not send unless the user asked
 
 ## Rules
 
