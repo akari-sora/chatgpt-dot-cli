@@ -158,6 +158,22 @@ def _error(prefix: str, status: int, payload: object) -> ApiError:
     return ApiError(message, status)
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
+
+
+def _build_opener(*handlers):
+    return urllib.request.build_opener(_NoRedirect, *handlers)
+
+
+_OPENER = _build_opener()
+
+
+def _urlopen(req, timeout):
+    return _OPENER.open(req, timeout=timeout)
+
+
 def request_json(
     access: str,
     account: str,
@@ -177,8 +193,6 @@ def request_json(
             url,
             data=payload,
             headers={
-                "Authorization": f"Bearer {access}",
-                "ChatGPT-Account-Id": account,
                 "Accept": "application/json",
                 "User-Agent": "Codex Desktop",
                 "originator": "Codex Desktop",
@@ -187,8 +201,10 @@ def request_json(
             },
             method=method,
         )
+        req.add_unredirected_header("Authorization", f"Bearer {access}")
+        req.add_unredirected_header("ChatGPT-Account-Id", account)
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with _urlopen(req, timeout=30) as resp:
                 status = resp.status
                 raw = resp.read()
         except urllib.error.HTTPError as exc:

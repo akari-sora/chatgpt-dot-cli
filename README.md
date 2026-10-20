@@ -314,6 +314,8 @@ MCP 的 `list` 快取只活在該程序裡，15 秒，`dot_send` 之後清掉。
 
 ### 安全
 
+HTTP 重新導向不會被跟隨。列印到終端機的文字會把控制字元跳脫成可見形式；`--json` 仍是合法 JSON，解碼後是原始值。
+
 除了 `send` 以外都是唯讀。`send` 只會 POST 文字訊息；若還沒有房間，會一併打開訊息房間。
 
 這個工具不會：暫停、恢復、刪除 dot，連接或中斷電腦，申請 email，使用語音，或呼叫 `/ps/orbit`。
@@ -712,6 +714,8 @@ The MCP `list` cache lives only in that process, for 15 seconds, and is cleared 
 `--json` redacts keys whose names match `token`, `secret`, `key`, `cookie`, `authorization`, `password`, or `session`, plus the exact keys `email`, `account_id`, `user_id`, `signaling_url`, `magic_link_url`, `magic_link_share_text`, and `inspector_url`. `account_user_id`, `id`, `aeon_id`, `created_at`, `content`, `preview`, `display_name`, `kind`, and `is_attached` are not redacted by that list.
 
 ### Safety
+
+HTTP redirects are not followed. Text printed to the terminal escapes control characters so they stay visible; `--json` remains valid JSON and decodes to the original values.
 
 Every command is read-only except `send`. `send` POSTs a text message. If there is no room yet, it also opens the messaging room.
 

@@ -2,7 +2,20 @@
 
 from __future__ import annotations
 
+import re
+import unicodedata
+
 from chatgpt_dot.api import redact
+
+
+def printable(text: str) -> str:
+    """Make Unicode control characters visible without changing other text."""
+    return "".join(
+        (f"\\x{ord(char):02x}" if ord(char) < 128 else f"\\u{ord(char):04x}")
+        if unicodedata.category(char) == "Cc"
+        else char
+        for char in text
+    )
 
 
 def dot_name(item: dict) -> str:
@@ -70,7 +83,7 @@ def message_line(item: dict, limit: int = 240, dot_ids: set[str] | None = None) 
     text = " ".join(text.split())
     if len(text) > limit:
         text = text[: limit - 1] + "…"
-    return f"{role}: {text}"
+    return printable(f"{role}: {text}")
 
 
 def aeon_member_note(dot_ids: set[str] | None, count: int) -> str | None:
@@ -82,4 +95,6 @@ def aeon_member_note(dot_ids: set[str] | None, count: int) -> str | None:
 def dumps(value: object) -> str:
     import json
 
-    return json.dumps(redact(value), ensure_ascii=False, indent=2)
+    text = json.dumps(redact(value), ensure_ascii=False, indent=2)
+    # JSON already escapes C0; make DEL/C1 safe to display without changing values.
+    return re.sub(r"[\x7f-\x9f]", lambda match: f"\\u{ord(match.group()):04x}", text)

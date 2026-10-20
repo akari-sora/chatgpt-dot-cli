@@ -89,7 +89,7 @@ class RequestTests(unittest.TestCase):
             captured["auth"] = req.get_header("Authorization")
             return Response()
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             status, payload = request_json("super-secret-token", "acct", "/tbo")
         self.assertEqual(status, 200)
         self.assertEqual(captured["method"], "GET")
@@ -101,7 +101,7 @@ class RequestTests(unittest.TestCase):
         def urlopen(*args, **kwargs):
             raise AssertionError("network")
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             with self.assertRaises(ApiError):
                 request_json("tok", "acct", "/tbo/x/runtime/pause", method="POST", body={})
 
@@ -114,7 +114,7 @@ class RequestTests(unittest.TestCase):
                 req.full_url, 403, "no", hdrs=None, fp=io.BytesIO(b'{"detail":{"code":"ineligible"}}')
             )
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             status, payload = request_json("tok", "acct", "/tbo/abc/channels/email")
         self.assertEqual(calls["n"], 1)
         self.assertEqual(status, 403)
@@ -256,7 +256,7 @@ class CliOutputTests(unittest.TestCase):
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
             mock.patch(
-                "chatgpt_dot.api.urllib.request.urlopen",
+                "chatgpt_dot.api._urlopen",
                 side_effect=urllib.error.URLError("offline"),
             ),
             mock.patch("sys.stderr", err),
@@ -274,7 +274,7 @@ class CliOutputTests(unittest.TestCase):
 
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("sys.stderr", err),
         ):
             code = main(["list"])
@@ -320,7 +320,7 @@ class LimitTests(unittest.TestCase):
         def urlopen(*args, **kwargs):
             raise AssertionError("network")
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             for limit in (0, 33, 50):
                 with self.assertRaises(ApiError):
                     list_messages("tok", "acct", "room1", limit)
@@ -333,7 +333,7 @@ class LimitTests(unittest.TestCase):
             err = io.StringIO()
             with (
                 mock.patch("chatgpt_dot.cli.load_auth", side_effect=explode),
-                mock.patch("chatgpt_dot.api.urllib.request.urlopen", side_effect=explode),
+                mock.patch("chatgpt_dot.api._urlopen", side_effect=explode),
                 mock.patch("sys.stderr", err),
             ):
                 with self.assertRaises(SystemExit) as ctx:
@@ -358,7 +358,7 @@ class LimitTests(unittest.TestCase):
         def urlopen(req, timeout=0):
             raise urllib.error.HTTPError(req.full_url, 422, "no", hdrs=None, fp=io.BytesIO(body))
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             with self.assertRaises(ApiError) as ctx:
                 list_messages("tok", "acct", "room1", 32)
         text = str(ctx.exception)
@@ -377,7 +377,7 @@ class PageTests(unittest.TestCase):
             captured["url"] = req.full_url
             return _response(200, b'{"items":[]}')
 
-        with mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen):
+        with mock.patch("chatgpt_dot.api._urlopen", urlopen):
             self.assertEqual(list_messages("tok", "acct", "room1", 5, before="m-old", after="m-new"), [])
         self.assertIn("before=m-old", captured["url"])
         self.assertIn("after=m-new", captured["url"])
@@ -582,7 +582,7 @@ class ConcurrencyTests(unittest.TestCase):
 
         calls = [(f"/tbo/n{i}", None) for i in range(6)]
         with (
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("chatgpt_dot.api.ThreadPoolExecutor", Pool),
         ):
             results = get_many("tok", "acct", calls, max_workers=8)
@@ -601,7 +601,7 @@ class SummaryTests(unittest.TestCase):
         err = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("sys.stdout", out),
             mock.patch("sys.stderr", err),
         ):
@@ -627,7 +627,7 @@ class SummaryTests(unittest.TestCase):
         err = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("chatgpt_dot.api.time.sleep"),
             mock.patch("sys.stdout", out),
             mock.patch("sys.stderr", err),
@@ -660,7 +660,7 @@ class SummaryTests(unittest.TestCase):
         out = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("sys.stdout", out),
         ):
             code = main(["summary", "--no-activity", "--json"])
@@ -749,7 +749,7 @@ class ProbeTests(unittest.TestCase):
         out = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("sys.stdout", out),
         ):
             code = main(["probe", "--json"])
@@ -813,7 +813,7 @@ class SendAndArgsTests(unittest.TestCase):
         out = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", side_effect=AssertionError("auth")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", side_effect=AssertionError("network")),
+            mock.patch("chatgpt_dot.api._urlopen", side_effect=AssertionError("network")),
             mock.patch("sys.stdout", out),
         ):
             code = main([])
@@ -836,7 +836,7 @@ class SendAndArgsTests(unittest.TestCase):
         err = io.StringIO()
         with (
             mock.patch("chatgpt_dot.cli.load_auth", return_value=("tok", "acct")),
-            mock.patch("chatgpt_dot.api.urllib.request.urlopen", urlopen),
+            mock.patch("chatgpt_dot.api._urlopen", urlopen),
             mock.patch("sys.stderr", err),
             mock.patch("sys.stdout", io.StringIO()),
         ):
