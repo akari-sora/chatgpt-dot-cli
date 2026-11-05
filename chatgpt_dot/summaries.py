@@ -77,7 +77,7 @@ def message_line(item: dict, limit: int = 240, dot_ids: set[str] | None = None) 
     else:
         role = "dot" if item.get("account_user_id") in dot_ids else "you"
     content = item.get("content") if isinstance(item.get("content"), dict) else {}
-    text = content.get("text") if isinstance(content, dict) else ""
+    text = content.get("text")
     if not isinstance(text, str):
         text = ""
     text = " ".join(text.split())
