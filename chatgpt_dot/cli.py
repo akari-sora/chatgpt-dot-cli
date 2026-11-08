@@ -221,11 +221,15 @@ def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: 
     require_text(text)
     dot = resolve_dot(access, account, dot_id)
     room = ensure_room(access, account, dot)
-    # Files are uploaded first; nothing is sent when one upload fails.
-    file_ids = [
-        upload_file(access, account, room, Path(p).name, Path(p).read_bytes(), mimetypes.guess_type(p)[0] or "application/octet-stream")
-        for p in attach or []
-    ]
+    # Files are uploaded first; no message is sent when one upload fails. Uploads are not undone.
+    file_ids = []
+    for p in attach or []:
+        try:
+            file_ids.append(upload_file(access, account, room, Path(p).name, Path(p).read_bytes(),
+                                        mimetypes.guess_type(p)[0] or "application/octet-stream"))
+        except ApiError as exc:
+            done = f"; {len(file_ids)} of {len(attach)} files uploaded before this one stay in the room" if file_ids else ""
+            raise ApiError(f"{exc}. {Path(p).name} did not upload; no message was sent{done}.", exc.status) from None
     payload = send_message(access, account, room, text, **({"file_ids": file_ids} if file_ids else {}))
     if as_json:
         print(dumps(payload))

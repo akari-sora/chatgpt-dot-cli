@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
+import urllib.error
 import urllib.parse
 import urllib.response
 
@@ -12,12 +13,15 @@ from chatgpt_dot.cli import main
 
 
 class SendAttachTests(unittest.TestCase):
-    def run_cli(self, argv, files):
+    def run_cli(self, argv, files, fail_upload=None):
         calls = []
 
         def transport(handler, http_class, req, **kwargs):
             path = urllib.parse.urlsplit(req.full_url).path.removeprefix("/backend-api")
             calls.append((req.get_method(), path, req.data, req.headers.get("Content-type")))
+            if path.endswith("/files") and sum(1 for c in calls if c[1].endswith("/files")) == fail_upload:
+                body = io.BytesIO(json.dumps({"detail": "Too Many Requests"}).encode())
+                raise urllib.error.HTTPError(req.full_url, 429, "Too Many Requests", Message(), body)
             payloads = {
                 "/tbo": {"items": [{"id": "dot_example", "display_name": "Example"}]},
                 "/tbo/dot_example/messaging-room": {"messaging_room_id": "room_example"},
@@ -65,6 +69,18 @@ class SendAttachTests(unittest.TestCase):
 
         shown = redact({"attachments": [{"file": {"download_url": "https://x.example/raw?sig=abc", "name": "b.zip"}}]})
         self.assertEqual(shown["attachments"][0]["file"], {"download_url": "***", "name": "b.zip"})
+
+    def test_a_failed_upload_says_which_files_already_went_up_and_sends_no_message(self):
+        code, calls, err = self.run_cli(["send", "--stdin"], [("a.zip", b"PK a"), ("b.zip", b"PK b")], fail_upload=2)
+        self.assertEqual(code, 3)
+        self.assertFalse(any(c[1].endswith("/messages") for c in calls))
+        self.assertIn("429", err)
+        self.assertIn("no message was sent", err)
+        self.assertIn("1 of 2 files", err)
+        code, calls, err = self.run_cli(["send", "--stdin"], [("a.zip", b"PK a")], fail_upload=1)
+        self.assertEqual(code, 3)
+        self.assertIn("no message was sent", err)
+        self.assertNotIn("of 1 file", err)
 
     def test_a_missing_file_sends_nothing(self):
         code, calls, err = self.run_cli(["send", "--stdin", "--attach", "/nonexistent/x.zip"], [])

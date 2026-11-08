@@ -268,7 +268,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | 旗標 | 預設 |
 | --- | --- |
 | `--stdin` | 從 stdin 讀取 UTF-8 文字 |
-| `--attach FILE` | 附加檔案（可重複，每個最多 20 MB）。檔案先上傳到 dot 的訊息房間（`POST /messaging/rooms/{id}/files`，和 dot app 相同），全部上傳成功才送出那一則訊息；任何一個上傳失敗就什麼都不送。輸出裡的檔案下載連結以 `***` 顯示 |
+| `--attach FILE` | 附加檔案（可重複，每個最多 20 MB）。檔案先上傳到 dot 的訊息房間（`POST /messaging/rooms/{id}/files`，和 dot app 相同），全部上傳成功才送出那一則訊息；任何一個上傳失敗就不送訊息，失敗前已上傳的檔案會留在房間裡（錯誤訊息會說有幾個）。輸出裡的檔案下載連結以 `***` 顯示 |
 | 位置參數 `text` | 已棄用，仍可用。以 `-` 開頭時前面加 `--` |
 | `--dot-id` | 唯一的 dot |
 
@@ -677,7 +677,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | Flag | Default |
 | --- | --- |
 | `--stdin` | read UTF-8 message text from stdin |
-| `--attach FILE` | attach a file (repeatable, up to 20 MB each). Files upload to the dot's messaging room first (`POST /messaging/rooms/{id}/files`, as the dot app does); the one message is sent only after every upload succeeded, so a failed upload sends nothing. File download links print as `***` |
+| `--attach FILE` | attach a file (repeatable, up to 20 MB each). Files upload to the dot's messaging room first (`POST /messaging/rooms/{id}/files`, as the dot app does); the one message is sent only after every upload succeeded. A failed upload sends no message; files uploaded before the failure stay in the room (the error says how many). File download links print as `***` |
 | positional `text` | deprecated; still accepted. Put `--` before text that starts with `-` |
 | `--dot-id` | the only dot |
 
