@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import mimetypes
+import re
 import sys
 from pathlib import Path
 
@@ -217,19 +219,20 @@ def cmd_messages(
     return 0
 
 
-def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: bool, attach: list[str] | None = None) -> int:
+def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: bool,
+             attach: list[tuple[str, bytes]] | None = None) -> int:
+    """`attach` is (file name, bytes) read once by main; those bytes are the ones uploaded."""
     require_text(text)
     dot = resolve_dot(access, account, dot_id)
     room = ensure_room(access, account, dot)
     # Files are uploaded first; no message is sent when one upload fails. Uploads are not undone.
     file_ids = []
-    for p in attach or []:
+    for name, data in attach or []:
         try:
-            file_ids.append(upload_file(access, account, room, Path(p).name, Path(p).read_bytes(),
-                                        mimetypes.guess_type(p)[0] or "application/octet-stream"))
+            file_ids.append(upload_file(access, account, room, name, data, mimetypes.guess_type(name)[0] or "application/octet-stream"))
         except ApiError as exc:
             done = f"; {len(file_ids)} of {len(attach)} files uploaded before this one stay in the room" if file_ids else ""
-            raise ApiError(f"{exc}. {Path(p).name} did not upload; no message was sent{done}.", exc.status) from None
+            raise ApiError(f"{exc}. {name} did not upload; no message was sent{done}.", exc.status) from None
     payload = send_message(access, account, room, text, **({"file_ids": file_ids} if file_ids else {}))
     if as_json:
         print(dumps(payload))
@@ -626,6 +629,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="attach a file (repeatable, up to 20 MB each); all files upload before the one message is sent",
     )
     send.add_argument(
+        "--attach-sha256",
+        action="append",
+        metavar="HEX",
+        help="expected sha256 of each --attach file, in the same order; a file whose bytes differ stops the send (default: not checked)",
+    )
+    send.add_argument(
         "--stdin",
         action="store_true",
         help="read UTF-8 message text from stdin; cannot be combined with positional text",
@@ -730,7 +739,12 @@ def main(argv: list[str] | None = None) -> int:
         send_text = _resolve_send_text(args)
         if send_text is None:
             return 2
-        for item in args.attach or []:
+        shas = args.attach_sha256 or []
+        if shas and (len(shas) != len(args.attach or []) or not all(re.fullmatch(r"[0-9a-fA-F]{64}", sha) for sha in shas)):
+            _emit("--attach-sha256 needs one 64-hex value per --attach, in the same order; nothing was uploaded or sent", file=sys.stderr)
+            return 2
+        files = []
+        for index, item in enumerate(args.attach or []):
             path = Path(item).expanduser()
             if not path.is_file() or path.is_symlink():
                 _emit(f"--attach needs a regular file: {item}", file=sys.stderr)
@@ -738,6 +752,12 @@ def main(argv: list[str] | None = None) -> int:
             if path.stat().st_size > MAX_ATTACHMENT:
                 _emit(f"--attach file is larger than {MAX_ATTACHMENT} bytes: {item}", file=sys.stderr)
                 return 2
+            # Read once: the bytes hashed here are the bytes that go into the upload.
+            data = path.read_bytes()
+            if shas and hashlib.sha256(data).hexdigest() != shas[index].lower():
+                _emit(f"--attach {item} does not match its --attach-sha256; nothing was uploaded or sent", file=sys.stderr)
+                return 2
+            files.append((path.name, data))
     try:
         access, account = load_auth(auth_path)
     except AuthError as exc:
@@ -770,7 +790,7 @@ def main(argv: list[str] | None = None) -> int:
                 after=args.after,
             )
         if args.command == "send":
-            return cmd_send(access, account, dot_id, send_text, as_json, attach=[str(Path(p).expanduser()) for p in args.attach or []])
+            return cmd_send(access, account, dot_id, send_text, as_json, attach=files)
         if args.command in _SUFFIX:
             return _suffix(access, account, dot_id, _SUFFIX[args.command], as_json)
     except ApiError as exc:

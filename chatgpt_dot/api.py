@@ -171,6 +171,14 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
 
 
+def _read_error(exc: urllib.error.HTTPError) -> bytes:
+    """An error or redirect response still holds its body: read it, then close it."""
+    try:
+        return exc.read()
+    finally:
+        exc.close()
+
+
 def _build_opener(*handlers):
     return urllib.request.build_opener(_NoRedirect, *handlers)
 
@@ -217,7 +225,7 @@ def request_json(
                 raw = resp.read()
         except urllib.error.HTTPError as exc:
             status = exc.code
-            raw = exc.read()
+            raw = _read_error(exc)
         except (urllib.error.URLError, TimeoutError) as exc:
             raise ApiError(f"network error: {getattr(exc, 'reason', exc)}") from exc
         if not raw:
@@ -386,7 +394,7 @@ def upload_file(access: str, account: str, room_id: str, name: str, data: bytes,
         with _urlopen(req, timeout=120) as resp:
             status, raw = resp.status, resp.read()
     except urllib.error.HTTPError as exc:
-        status, raw = exc.code, exc.read()
+        status, raw = exc.code, _read_error(exc)
     except (urllib.error.URLError, TimeoutError) as exc:
         raise ApiError(f"network error: {getattr(exc, 'reason', exc)}") from exc
     try:

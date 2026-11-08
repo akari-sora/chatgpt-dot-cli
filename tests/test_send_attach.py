@@ -82,6 +82,24 @@ class SendAttachTests(unittest.TestCase):
         self.assertIn("no message was sent", err)
         self.assertNotIn("of 1 file", err)
 
+    def test_attach_sha256_binds_the_uploaded_bytes(self):
+        import hashlib
+        good = hashlib.sha256(b"PK a").hexdigest()
+        code, calls, err = self.run_cli(["send", "--stdin", "--attach-sha256", good.upper()], [("a.zip", b"PK a")])
+        self.assertEqual(code, 0, err)
+        upload = next(c for c in calls if c[1].endswith("/files"))
+        self.assertIn(b"\r\n\r\nPK a\r\n--", upload[2])
+        for shas, files in (([good, "0" * 64], [("a.zip", b"PK a"), ("b.zip", b"PK b")]),  # second file differs
+                            ([good], [("a.zip", b"PK a"), ("b.zip", b"PK b")]),             # one value for two files
+                            (["not-hex"], [("a.zip", b"PK a")])):
+            argv = ["send", "--stdin"]
+            for sha in shas:
+                argv += ["--attach-sha256", sha]
+            code, calls, err = self.run_cli(argv, files)
+            self.assertEqual(code, 2, err)
+            self.assertEqual(calls, [])
+            self.assertIn("--attach-sha256", err)
+
     def test_a_missing_file_sends_nothing(self):
         code, calls, err = self.run_cli(["send", "--stdin", "--attach", "/nonexistent/x.zip"], [])
         self.assertEqual(code, 2)
