@@ -57,6 +57,8 @@ class SendAttachTests(unittest.TestCase):
         sent = json.loads(next(c for c in calls if c[1].endswith("/messages"))[2])
         self.assertEqual(sent["content"]["attachments"], [{"type": "file", "file_id": "CalpicoFile_1"}])
         self.assertEqual(sent["content"]["text"], "unzip it")
+        self.assertEqual(sent["request_id"], sent["idempotency_token"])
+        self.assertIsInstance(sent["timezone_offset_min"], int)
 
     def test_signed_file_links_are_not_printed(self):
         from chatgpt_dot.api import redact

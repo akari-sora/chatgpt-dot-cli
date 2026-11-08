@@ -401,6 +401,12 @@ def upload_file(access: str, account: str, room_id: str, name: str, data: bytes,
     return file_id
 
 
+def _timezone_offset_min() -> int:
+    """JavaScript's Date().getTimezoneOffset(): minutes to add to local time to get UTC."""
+    offset = time.localtime().tm_gmtoff
+    return -offset // 60
+
+
 def send_message(access: str, account: str, room_id: str, text: str, file_ids: list[str] | None = None) -> dict:
     require_text(text)
     request_id = str(uuid.uuid4())
@@ -409,9 +415,11 @@ def send_message(access: str, account: str, room_id: str, text: str, file_ids: l
         account,
         f"/messaging/rooms/{room_id}/messages",
         {
+            # Same fields as the dot app's own send (request_id doubles as the idempotency token).
             "content": {"text": text, "attachments": [{"type": "file", "file_id": f} for f in file_ids or []]},
             "request_id": request_id,
             "idempotency_token": request_id,
+            "timezone_offset_min": _timezone_offset_min(),
         },
     )
     if status not in (200, 201) or not isinstance(payload, dict):
