@@ -23,7 +23,7 @@ Windows (PowerShell): `.venv\Scripts\python.exe -m unittest discover -s tests`.
 - Tests use fakes. They never call chatgpt.com and never read a real `~/.codex/auth.json`.
 - Every HTTP call goes through the allow list in `chatgpt_dot/api.py`. Do not add an endpoint that pauses, deletes, connects, or changes settings; those are out of scope.
 - Never commit tokens, cookies, credential files, account, chat, or bot ids, message text, emails, IP addresses, host names, or absolute local paths. Use fake values in tests and docs.
-- Keep the English and 中文 sections of the README in sync.
+- Keep `README.md` and `README.zh-TW.md` in sync, and `docs/reference.md` and `docs/reference.zh-TW.md` in sync.
 - A bug fix comes with a test that fails without it.
 - One topic per merge request. Describe how you tested it.
 
@@ -34,7 +34,7 @@ GitLab CI runs the tests on Linux for every push and on Windows for merge reques
 ## Release process (maintainers)
 
 1. Bump `__version__` in `chatgpt_dot/__init__.py`. `pyproject.toml` loads the package version from that attribute.
-2. Update the install pins (`@vX.Y.Z`) in both README sections.
+2. Update the install pins (`@vX.Y.Z`) and the `chatgpt-dot-cli X.Y.Z` version line in `README.md` and `README.zh-TW.md`, and the pins in `docs/reference.md` and `docs/reference.zh-TW.md`. `tests/test_api.py` fails until they agree.
 3. Add a `## vX.Y.Z` heading (exactly that, no date) at the top of `CHANGELOG.md`. The release job copies that section into the GitLab Release.
 4. Merge to `main` and wait for a green pipeline.
 5. Tag `vX.Y.Z` on `main` (the same number as `__version__`) and push the tag. The tag pipeline builds the wheel and sdist and creates the GitLab Release.
