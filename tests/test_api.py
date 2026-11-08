@@ -968,10 +968,10 @@ class McpTests(unittest.TestCase):
 
 class DocsDriftTests(unittest.TestCase):
     def test_every_subcommand_is_documented(self):
+        from chatgpt_dot import __version__ as version
         from chatgpt_dot.cli import build_parser
 
         root = Path(__file__).resolve().parents[1]
-        readme = (root / "README.md").read_text(encoding="utf-8")
         skill = (root / "skills" / "chatgpt-dot-cli" / "SKILL.md").read_text(encoding="utf-8")
         parser = build_parser()
         names = []
@@ -984,17 +984,30 @@ class DocsDriftTests(unittest.TestCase):
             self._assert_flag_help(action.choices.values())
         self.assertGreaterEqual(len(names), 16)
         for name in names:
-            pattern = rf"(?<![\w-]){re.escape(name)}(?![\w-])"
-            self.assertRegex(readme, pattern, name)
-            self.assertRegex(skill, pattern, name)
-        for url in (
-            "https://gitlab.com/aa22396584/trinity-cli",
-            "https://gitlab.com/aa22396584/chatgpt-dot-cli",
-            "https://gitlab.com/aa22396584/grok-bot-cli",
-            "https://gitlab.com/aa22396584/muse-web-cli",
+            self.assertRegex(skill, rf"(?<![\w-]){re.escape(name)}(?![\w-])", name)
+        # English: README.md + docs/reference.md. 中文：README.zh-TW.md + docs/reference.zh-TW.md.
+        for readme_name, reference_name in (
+            ("README.md", "docs/reference.md"),
+            ("README.zh-TW.md", "docs/reference.zh-TW.md"),
         ):
-            self.assertIn(url, readme)
-        self.assertNotIn("github.com/ImL1s", readme)
+            with self.subTest(readme=readme_name):
+                readme = (root / readme_name).read_text(encoding="utf-8")
+                reference = (root / reference_name).read_text(encoding="utf-8")
+                for name in names:
+                    pattern = rf"(?<![\w-]){re.escape(name)}(?![\w-])"
+                    self.assertRegex(readme, pattern, name)
+                    self.assertRegex(reference, pattern, name)
+                for url in (
+                    "https://gitlab.com/aa22396584/trinity-cli",
+                    "https://gitlab.com/aa22396584/chatgpt-dot-cli",
+                    "https://gitlab.com/aa22396584/grok-bot-cli",
+                    "https://gitlab.com/aa22396584/muse-web-cli",
+                ):
+                    self.assertIn(url, readme)
+                for text in (readme, reference):
+                    self.assertNotIn("github.com/ImL1s", text)
+                    self.assertEqual(set(re.findall(r"chatgpt-dot-cli\.git@v([^\"\s]+)", text)), {version})
+                self.assertIn(f"chatgpt-dot-cli {version}", readme)
 
     def _assert_flag_help(self, parsers) -> None:
         for parser in parsers:
