@@ -258,7 +258,7 @@ chatgpt-dot-cli messages --limit 2
 
 #### `send`
 
-唯一會寫入的指令。把文字傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取 UTF-8 文字，避免訊息出現在 argv 或 shell 歷史。stdin 內容會原樣送出，包含檔案或 `echo` 結尾的換行。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
+唯一會寫入的指令。把文字（和 `--attach` 的檔案）傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取 UTF-8 文字，避免訊息出現在 argv 或 shell 歷史。stdin 內容會原樣送出，包含檔案或 `echo` 結尾的換行。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
 
 ```bash
 chatgpt-dot-cli send --help
@@ -268,6 +268,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | 旗標 | 預設 |
 | --- | --- |
 | `--stdin` | 從 stdin 讀取 UTF-8 文字 |
+| `--attach FILE` | 附加檔案（可重複，每個最多 20 MB）。檔案先上傳到 dot 的訊息房間（`POST /messaging/rooms/{id}/files`，和 dot app 相同），全部上傳成功才送出那一則訊息；任何一個上傳失敗就什麼都不送。輸出裡的檔案下載連結以 `***` 顯示 |
 | 位置參數 `text` | 已棄用，仍可用。以 `-` 開頭時前面加 `--` |
 | `--dot-id` | 唯一的 dot |
 
@@ -666,7 +667,7 @@ The CLI does not send `cursor` and does not follow further pages. `--json` keys 
 
 #### `send`
 
-The only command that writes. It posts text into the dot's messaging inbox. Prefer `--stdin` so the UTF-8 text is not in argv or shell history. Stdin is sent unchanged, including a trailing newline from a file or `echo`. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
+The only command that writes. It posts text (and `--attach` files) into the dot's messaging inbox. Prefer `--stdin` so the UTF-8 text is not in argv or shell history. Stdin is sent unchanged, including a trailing newline from a file or `echo`. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
 
 ```bash
 chatgpt-dot-cli send --help
@@ -676,6 +677,7 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | Flag | Default |
 | --- | --- |
 | `--stdin` | read UTF-8 message text from stdin |
+| `--attach FILE` | attach a file (repeatable, up to 20 MB each). Files upload to the dot's messaging room first (`POST /messaging/rooms/{id}/files`, as the dot app does); the one message is sent only after every upload succeeded, so a failed upload sends nothing. File download links print as `***` |
 | positional `text` | deprecated; still accepted. Put `--` before text that starts with `-` |
 | `--dot-id` | the only dot |
 

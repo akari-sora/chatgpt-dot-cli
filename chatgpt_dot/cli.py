@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import mimetypes
 import sys
+from pathlib import Path
 
 from chatgpt_dot import __version__
 from chatgpt_dot.api import (
@@ -21,6 +23,8 @@ from chatgpt_dot.api import (
     require_text,
     resolve_dot,
     send_message,
+    upload_file,
+    MAX_ATTACHMENT,
 )
 from chatgpt_dot.platform import configure_stdio
 from chatgpt_dot.summaries import (
@@ -213,11 +217,16 @@ def cmd_messages(
     return 0
 
 
-def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: bool) -> int:
+def cmd_send(access: str, account: str, dot_id: str | None, text: str, as_json: bool, attach: list[str] | None = None) -> int:
     require_text(text)
     dot = resolve_dot(access, account, dot_id)
     room = ensure_room(access, account, dot)
-    payload = send_message(access, account, room, text)
+    # Files are uploaded first; nothing is sent when one upload fails.
+    file_ids = [
+        upload_file(access, account, room, Path(p).name, Path(p).read_bytes(), mimetypes.guess_type(p)[0] or "application/octet-stream")
+        for p in attach or []
+    ]
+    payload = send_message(access, account, room, text, **({"file_ids": file_ids} if file_ids else {}))
     if as_json:
         print(dumps(payload))
     else:
@@ -607,6 +616,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="message text (deprecated; use --stdin). Put -- before text that starts with a dash",
     )
     send.add_argument(
+        "--attach",
+        action="append",
+        metavar="FILE",
+        help="attach a file (repeatable, up to 20 MB each); all files upload before the one message is sent",
+    )
+    send.add_argument(
         "--stdin",
         action="store_true",
         help="read UTF-8 message text from stdin; cannot be combined with positional text",
@@ -711,6 +726,14 @@ def main(argv: list[str] | None = None) -> int:
         send_text = _resolve_send_text(args)
         if send_text is None:
             return 2
+        for item in args.attach or []:
+            path = Path(item).expanduser()
+            if not path.is_file() or path.is_symlink():
+                _emit(f"--attach needs a regular file: {item}", file=sys.stderr)
+                return 2
+            if path.stat().st_size > MAX_ATTACHMENT:
+                _emit(f"--attach file is larger than {MAX_ATTACHMENT} bytes: {item}", file=sys.stderr)
+                return 2
     try:
         access, account = load_auth(auth_path)
     except AuthError as exc:
@@ -743,7 +766,7 @@ def main(argv: list[str] | None = None) -> int:
                 after=args.after,
             )
         if args.command == "send":
-            return cmd_send(access, account, dot_id, send_text, as_json)
+            return cmd_send(access, account, dot_id, send_text, as_json, attach=[str(Path(p).expanduser()) for p in args.attach or []])
         if args.command in _SUFFIX:
             return _suffix(access, account, dot_id, _SUFFIX[args.command], as_json)
     except ApiError as exc:
