@@ -4,7 +4,7 @@ English | [繁體中文](README.zh-TW.md)
 
 Check, read, and message your ChatGPT Your dot from a terminal.
 
-> Canonical repository and issues: <https://gitlab.com/aa22396584/chatgpt-dot-cli>. Part of the trinity-cli family: <https://gitlab.com/aa22396584/trinity-cli>
+> Canonical repository and issues: <https://gitlab.com/aa22396584/chatgpt-dot-cli>. Releases and downloads: <https://gitlab.com/aa22396584/chatgpt-dot-cli/-/releases>. GitHub mirror: <https://github.com/akari-sora/chatgpt-dot-cli> (open issues and merge requests on GitLab). Part of the trinity-cli family: <https://gitlab.com/aa22396584/trinity-cli>
 
 [![pipeline status](https://gitlab.com/aa22396584/chatgpt-dot-cli/badges/main/pipeline.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/commits/main)
 [![release](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/badges/release.svg)](https://gitlab.com/aa22396584/chatgpt-dot-cli/-/releases)
