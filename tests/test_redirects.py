@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import contextlib
+import gc
 import io
 import json
 import unittest
+import warnings
 from email.message import Message
 from unittest import mock
 import urllib.request
@@ -21,6 +23,7 @@ class FakeTransport:
     def __init__(self, responses, proxies=None):
         self.responses = list(responses)
         self.requests = []
+        self.handed = []
         fixture = self
 
         class FakeHTTP(urllib.request.HTTPHandler):
@@ -42,6 +45,7 @@ class FakeTransport:
             headers["Location"] = location
         response = urllib.response.addinfourl(io.BytesIO(body), headers, req.full_url, code)
         response.msg = "fixture"
+        self.handed.append(response)
         return response
 
     @contextlib.contextmanager
@@ -102,6 +106,18 @@ class RedirectTests(unittest.TestCase):
             api.send_message("fake-token", "account_example", "room_example", "hello")
         self.assertEqual(caught.exception.status, 302)
         self.assertEqual(len(fixture.requests), 1)
+
+    def test_redirect_and_error_responses_are_closed_after_they_are_read(self):
+        for code, location in ((302, "https://other.invalid/outside"), (404, None), (429, None)):
+            with self.subTest(code=code):
+                fixture = FakeTransport([(code, location, b'{"detail":"x"}'), (code, location, b'{"detail":"x"}')])
+                # Closed by the client, not left for the garbage collector (which warns on stderr).
+                with warnings.catch_warnings(record=True) as seen, fixture.install(), mock.patch("chatgpt_dot.api.time.sleep"):
+                    warnings.simplefilter("always", ResourceWarning)
+                    api.request_json("fake-token", "account_example", "/wham/usage")
+                    gc.collect()
+                self.assertTrue(fixture.handed)
+                self.assertEqual([str(w.message) for w in seen if issubclass(w.category, ResourceWarning)], [])
 
     def test_cli_usage_redirect_exits_three(self):
         fixture = FakeTransport([(302, "https://other.invalid/outside", b"")])

@@ -26,19 +26,19 @@ Part of the trinity-cli family / trinity-cli 系列的一部分：<https://gitla
 
 ### 安裝
 
-版本釘在 tag `v0.2.5`。
+版本釘在 tag `v0.2.6`。
 
 Linux 或 macOS：
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 chatgpt-dot-cli --version
 ```
 
 或：
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 chatgpt-dot-cli --version
 ```
 
@@ -48,7 +48,7 @@ Windows（PowerShell）：
 
 ```powershell
 irm https://astral.sh/uv/install.ps1 | iex
-uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 chatgpt-dot-cli --version
 ```
 
@@ -56,26 +56,26 @@ Windows 的執行檔在 `%USERPROFILE%\.local\bin\chatgpt-dot-cli.exe`。新開�
 
 ```powershell
 py -3.12 -m pip install --user pipx
-pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 chatgpt-dot-cli --version
 ```
 
-`--version` 會印出 `chatgpt-dot-cli 0.2.5`。
+`--version` 會印出 `chatgpt-dot-cli 0.2.6`。
 
 GitLab Release 另附與平台無關的 wheel 與 sdist。用 pip 裝 wheel：
 
 ```bash
-python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.5/chatgpt_dot_cli-0.2.5-py3-none-any.whl"
+python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.6/chatgpt_dot_cli-0.2.6-py3-none-any.whl"
 ```
 
 升級要重新指定 tag。`uv tool upgrade` 不會把釘在 tag 的安裝移到下一個 tag。
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 ```
 
 ```powershell
-uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 ```
 
 移除：
@@ -258,7 +258,7 @@ chatgpt-dot-cli messages --limit 2
 
 #### `send`
 
-唯一會寫入的指令。把文字傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取 UTF-8 文字，避免訊息出現在 argv 或 shell 歷史。stdin 內容會原樣送出，包含檔案或 `echo` 結尾的換行。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
+唯一會寫入的指令。把文字（和 `--attach` 的檔案）傳進 dot 的訊息收件匣。建議用 `--stdin` 讀取 UTF-8 文字，避免訊息出現在 argv 或 shell 歷史。stdin 內容會原樣送出，包含檔案或 `echo` 結尾的換行。位置參數仍可用，但會在 stderr 印出棄用警告。`--stdin` 與位置參數不能同時使用。
 
 ```bash
 chatgpt-dot-cli send --help
@@ -268,6 +268,8 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | 旗標 | 預設 |
 | --- | --- |
 | `--stdin` | 從 stdin 讀取 UTF-8 文字 |
+| `--attach FILE` | 附加檔案（可重複，每個最多 20 MB）。檔案先上傳到 dot 的訊息房間（`POST /messaging/rooms/{id}/files`，和 dot app 相同），全部上傳成功才送出那一則訊息；任何一個上傳失敗就不送訊息，失敗前已上傳的檔案會留在房間裡（錯誤訊息會說有幾個）。輸出裡的檔案下載連結以 `***` 顯示 |
+| `--attach-sha256 HEX` | 每個 `--attach` 檔案預期的 sha256，依同樣順序（可重複）。檔案只讀一次，算出的雜湊和上傳的是同一份位元組；不符就結束碼 2，什麼都不上傳、不送 |
 | 位置參數 `text` | 已棄用，仍可用。以 `-` 開頭時前面加 `--` |
 | `--dot-id` | 唯一的 dot |
 
@@ -343,7 +345,7 @@ HTTP 重新導向不會被跟隨。列印到終端機的文字會把控制字元
 MCP 是可選的。stdio 指令是 `chatgpt-dot-cli-mcp`。它只讀預設登入檔。
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 ```
 
 從這個 repo 的工作目錄：
@@ -356,15 +358,15 @@ uv pip install -e ".[mcp]"
 
 跨 agent（同時問三個、交接、摘要）用 [trinity-cli](https://gitlab.com/aa22396584/trinity-cli)。
 
-給 agent 的 skill：Linux 與 macOS 可以把 tag `v0.2.5` clone 到 `$HOME/.local/share/chatgpt-dot-cli`。目錄已存在時改為 `fetch --tags` 再 `checkout --detach`。目標已存在而且不是 symlink 時，stderr 印跳過，不覆蓋。clone 失敗不會建立連結。
+給 agent 的 skill：Linux 與 macOS 可以把 tag `v0.2.6` clone 到 `$HOME/.local/share/chatgpt-dot-cli`。目錄已存在時改為 `fetch --tags` 再 `checkout --detach`。目標已存在而且不是 symlink 時，stderr 印跳過，不覆蓋。clone 失敗不會建立連結。
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.5
+  git -C "$src" checkout --detach v0.2.6
 else
-  git clone --branch v0.2.5 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.6 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \
@@ -434,19 +436,19 @@ Supported systems: see [Platforms](#platforms).
 
 ### Install
 
-Pinned to tag `v0.2.5`.
+Pinned to tag `v0.2.6`.
 
 Linux or macOS:
 
 ```bash
-uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+uv tool install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 chatgpt-dot-cli --version
 ```
 
 Or:
 
 ```bash
-pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+pipx install git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 chatgpt-dot-cli --version
 ```
 
@@ -456,7 +458,7 @@ Windows (PowerShell):
 
 ```powershell
 irm https://astral.sh/uv/install.ps1 | iex
-uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 chatgpt-dot-cli --version
 ```
 
@@ -464,26 +466,26 @@ On Windows the executable is `%USERPROFILE%\.local\bin\chatgpt-dot-cli.exe`. Ope
 
 ```powershell
 py -3.12 -m pip install --user pipx
-pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+pipx install "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 chatgpt-dot-cli --version
 ```
 
-`--version` prints `chatgpt-dot-cli 0.2.5`.
+`--version` prints `chatgpt-dot-cli 0.2.6`.
 
 The GitLab Release also attaches a platform-independent wheel and sdist. Install the wheel with pip:
 
 ```bash
-python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.5/chatgpt_dot_cli-0.2.5-py3-none-any.whl"
+python3 -m pip install "https://gitlab.com/api/v4/projects/aa22396584%2Fchatgpt-dot-cli/packages/generic/chatgpt-dot-cli/v0.2.6/chatgpt_dot_cli-0.2.6-py3-none-any.whl"
 ```
 
 To upgrade, install that tag again. `uv tool upgrade` will not move an install that is pinned to a tag.
 
 ```bash
-uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5
+uv tool install --force git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6
 ```
 
 ```powershell
-uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install --force "git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 ```
 
 Uninstall:
@@ -666,7 +668,7 @@ The CLI does not send `cursor` and does not follow further pages. `--json` keys 
 
 #### `send`
 
-The only command that writes. It posts text into the dot's messaging inbox. Prefer `--stdin` so the UTF-8 text is not in argv or shell history. Stdin is sent unchanged, including a trailing newline from a file or `echo`. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
+The only command that writes. It posts text (and `--attach` files) into the dot's messaging inbox. Prefer `--stdin` so the UTF-8 text is not in argv or shell history. Stdin is sent unchanged, including a trailing newline from a file or `echo`. Positional text still works and prints a deprecation warning on stderr. `--stdin` and positional text cannot be used together.
 
 ```bash
 chatgpt-dot-cli send --help
@@ -676,6 +678,8 @@ printf 'hello' | chatgpt-dot-cli send --stdin
 | Flag | Default |
 | --- | --- |
 | `--stdin` | read UTF-8 message text from stdin |
+| `--attach FILE` | attach a file (repeatable, up to 20 MB each). Files upload to the dot's messaging room first (`POST /messaging/rooms/{id}/files`, as the dot app does); the one message is sent only after every upload succeeded. A failed upload sends no message; files uploaded before the failure stay in the room (the error says how many). File download links print as `***` |
+| `--attach-sha256 HEX` | expected sha256 of each `--attach` file, in the same order (repeatable). Each file is read once, and the hashed bytes are the uploaded bytes; a mismatch exits 2 and nothing is uploaded or sent |
 | positional `text` | deprecated; still accepted. Put `--` before text that starts with `-` |
 | `--dot-id` | the only dot |
 
@@ -751,7 +755,7 @@ This tool never pauses, resumes, or deletes a dot, never connects or disconnects
 MCP is optional. The stdio command is `chatgpt-dot-cli-mcp`. It reads only the default login file.
 
 ```bash
-uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.5"
+uv tool install --force "chatgpt-dot-cli[mcp] @ git+https://gitlab.com/aa22396584/chatgpt-dot-cli.git@v0.2.6"
 ```
 
 From a checkout of this repo:
@@ -764,15 +768,15 @@ If the MCP package is missing, `chatgpt-dot-cli-mcp` exits 1 and prints those tw
 
 For cross-agent work (ask all three, hand off, digest) use [trinity-cli](https://gitlab.com/aa22396584/trinity-cli).
 
-Agent skill install on Linux and macOS: clone tag `v0.2.5` to `$HOME/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone. A failed clone creates no links.
+Agent skill install on Linux and macOS: clone tag `v0.2.6` to `$HOME/.local/share/chatgpt-dot-cli`. If that checkout already exists, it runs `fetch --tags` and `checkout --detach`. If a target already exists and is not a symlink, the script prints a skip message on stderr and leaves it alone. A failed clone creates no links.
 
 ```bash
 src="$HOME/.local/share/chatgpt-dot-cli"
 if [ -d "$src/.git" ]; then
   git -C "$src" fetch --tags origin &&
-  git -C "$src" checkout --detach v0.2.5
+  git -C "$src" checkout --detach v0.2.6
 else
-  git clone --branch v0.2.5 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
+  git clone --branch v0.2.6 https://gitlab.com/aa22396584/chatgpt-dot-cli.git "$src"
 fi && [ -f "$src/skills/chatgpt-dot-cli/SKILL.md" ] &&
 for d in "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills" \
          "$HOME/.config/opencode/skills" "$HOME/.config/opencode/skill" \

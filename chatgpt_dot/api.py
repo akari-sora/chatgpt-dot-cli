@@ -39,6 +39,7 @@ GET_PATTERNS = (
 )
 POST_PATTERNS = (
     re.compile(rf"^/messaging/rooms/{_ID}/messages$"),
+    re.compile(rf"^/messaging/rooms/{_ID}/files$"),
     re.compile(rf"^/tbo/{_ID}/messaging-room$"),
 )
 SECRET_KEY = re.compile(
@@ -53,6 +54,8 @@ EXACT_SECRET_KEYS = frozenset(
         "user_id",
         "signaling_url",
         "magic_link_url",
+        "download_url",
+        "upload_url",
         "magic_link_share_text",
         "inspector_url",
     }
@@ -168,6 +171,14 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         raise urllib.error.HTTPError(req.full_url, code, msg, headers, fp)
 
 
+def _read_error(exc: urllib.error.HTTPError) -> bytes:
+    """An error or redirect response still holds its body: read it, then close it."""
+    try:
+        return exc.read()
+    finally:
+        exc.close()
+
+
 def _build_opener(*handlers):
     return urllib.request.build_opener(_NoRedirect, *handlers)
 
@@ -214,7 +225,7 @@ def request_json(
                 raw = resp.read()
         except urllib.error.HTTPError as exc:
             status = exc.code
-            raw = exc.read()
+            raw = _read_error(exc)
         except (urllib.error.URLError, TimeoutError) as exc:
             raise ApiError(f"network error: {getattr(exc, 'reason', exc)}") from exc
         if not raw:
@@ -349,7 +360,62 @@ def require_text(text: str) -> str:
     return text
 
 
-def send_message(access: str, account: str, room_id: str, text: str) -> dict:
+# The dot app's own limit for one attachment (attachmentTooLarge, 20 MB).
+MAX_ATTACHMENT = 20 * 1024 * 1024
+
+
+def upload_file(access: str, account: str, room_id: str, name: str, data: bytes, mime: str) -> str:
+    """Upload one file into the dot's room, as the dot app does (multipart field "file"). Returns its file id."""
+    if len(data) > MAX_ATTACHMENT:
+        raise ApiError(f"attachment is larger than {MAX_ATTACHMENT} bytes: {name}")
+    path = f"/messaging/rooms/{room_id}/files"
+    assert_allowed("POST", path)
+    boundary = "chatgpt-dot-cli-" + uuid.uuid4().hex
+    safe = name.replace('"', "_").replace("\r", "_").replace("\n", "_")
+    body = (
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="{safe}"\r\n'
+        f"Content-Type: {mime}\r\n\r\n"
+    ).encode("utf-8") + data + f"\r\n--{boundary}--\r\n".encode("ascii")
+    req = urllib.request.Request(
+        BASE + path,
+        data=body,
+        method="POST",
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "Codex Desktop",
+            "originator": "Codex Desktop",
+            "OAI-Product-Sku": "CODEX",
+            "Content-Type": f"multipart/form-data; boundary={boundary}",
+        },
+    )
+    req.add_unredirected_header("Authorization", f"Bearer {access}")
+    req.add_unredirected_header("ChatGPT-Account-Id", account)
+    try:
+        with _urlopen(req, timeout=120) as resp:
+            status, raw = resp.status, resp.read()
+    except urllib.error.HTTPError as exc:
+        status, raw = exc.code, _read_error(exc)
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise ApiError(f"network error: {getattr(exc, 'reason', exc)}") from exc
+    try:
+        payload = json.loads(raw.decode("utf-8")) if raw else None
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        payload = None
+    if status == 401:
+        raise ApiError("ChatGPT login expired (401). Open Codex or run `codex login`, then retry.", 401)
+    file_id = payload.get("file_id") or payload.get("id") if isinstance(payload, dict) else None
+    if status not in (200, 201) or not isinstance(file_id, str) or not file_id:
+        raise _error("upload failed", status, payload)
+    return file_id
+
+
+def _timezone_offset_min() -> int:
+    """JavaScript's Date().getTimezoneOffset(): minutes to add to local time to get UTC."""
+    offset = time.localtime().tm_gmtoff
+    return -offset // 60
+
+
+def send_message(access: str, account: str, room_id: str, text: str, file_ids: list[str] | None = None) -> dict:
     require_text(text)
     request_id = str(uuid.uuid4())
     status, payload = post_json(
@@ -357,9 +423,11 @@ def send_message(access: str, account: str, room_id: str, text: str) -> dict:
         account,
         f"/messaging/rooms/{room_id}/messages",
         {
-            "content": {"text": text, "attachments": []},
+            # Same fields as the dot app's own send (request_id doubles as the idempotency token).
+            "content": {"text": text, "attachments": [{"type": "file", "file_id": f} for f in file_ids or []]},
             "request_id": request_id,
             "idempotency_token": request_id,
+            "timezone_offset_min": _timezone_offset_min(),
         },
     )
     if status not in (200, 201) or not isinstance(payload, dict):

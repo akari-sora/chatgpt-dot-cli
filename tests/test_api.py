@@ -833,7 +833,7 @@ class SendAndArgsTests(unittest.TestCase):
                 main(["--version"])
         self.assertEqual(ctx.exception.code, 0)
         self.assertIn(__version__, out.getvalue())
-        self.assertIn("0.2.5", out.getvalue())
+        self.assertIn("0.2.6", out.getvalue())
 
     def test_unicode_body_exits_3(self):
         def urlopen(req, timeout=0):

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.6
+
+- `send --attach FILE` (repeatable, 20 MB each) uploads files into the dot's message room (`POST /messaging/rooms/{id}/files`, as the dot app does) and sends them with the one message as `{type: file, file_id}`. Every file uploads before the message is sent; a failed upload sends no message and says how many files already went up.
+- `send --attach-sha256 HEX` (repeatable, in `--attach` order): each file is read once and the hashed bytes are the uploaded bytes. A mismatch exits 2; nothing is uploaded or sent.
+- The send body carries `timezone_offset_min`, like the dot app.
+- Signed download and upload links are shown as `***` in output.
+- HTTP error responses (redirects included) are closed after their body is read; Python 3.14 no longer prints a ResourceWarning.
+- The lock file moves certifi to 2026.10.23 (GHSA-6q48-6c7w-9gw2, #5). It is reached only through the `[mcp]` extra; the core install has no dependencies.
+
 ## v0.2.5
 
 - `send --stdin` reads UTF-8 message text from stdin. Positional text still works and prints a deprecation warning on stderr. MCP `dot_send` is unchanged.
